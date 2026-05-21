@@ -40,13 +40,19 @@ func main() {
 }
 
 func newInitCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "init",
 		Short: "Run the interactive setup wizard.",
+		Long: "Run the interactive setup wizard. By default (v0.2), the wizard\n" +
+			"executes real install commands for each selected engine. Use --dry-run\n" +
+			"to preview the commands without running them.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return wizard.Run()
+			dryRun, _ := cmd.Flags().GetBool("dry-run")
+			return wizard.RunWith(wizard.Options{DryRun: dryRun})
 		},
 	}
+	cmd.Flags().Bool("dry-run", false, "Preview install commands without executing them.")
+	return cmd
 }
 
 func newCreditsCmd() *cobra.Command {

@@ -27,8 +27,26 @@ func New() Model {
 	}
 }
 
+// Options configures a wizard run. Currently controls dry-run mode.
+type Options struct {
+	DryRun bool
+}
+
 func Run() error {
-	p := tea.NewProgram(New(), tea.WithAltScreen())
+	return RunWith(Options{})
+}
+
+func RunWith(opts Options) error {
+	m := New()
+	for _, s := range m.steps {
+		if inst, ok := s.(*steps.Install); ok {
+			inst.SetDryRun(opts.DryRun)
+			// The wizard always shows the consent screen before stack selection.
+			// If the user declines, the program exits before Install can run.
+			inst.SetAgplAcknowledged(true)
+		}
+	}
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err := p.Run()
 	return err
 }

@@ -102,7 +102,7 @@ installers/              # GoReleaser configs for every distribution channel
 Carbon `#0A0A0F` · Chartreuse `#BDEB34` (single accent) · Ivory `#FAFCE8`
 Playfair Display Italic (display) · Sora 300 (body) · JetBrains Mono UPPERCASE (labels)
 
-Ver [`docs/design-system.md`](docs/design-system.md).
+Los tokens de la CLI viven en [`internal/theme`](internal/theme); la documentación visual pública vive en el Lab.
 
 ## Contribuir · Contributing
 

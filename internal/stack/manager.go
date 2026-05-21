@@ -8,7 +8,10 @@ import (
 	"fmt"
 )
 
-var ErrNotImplemented = errors.New("not implemented yet")
+var (
+	ErrNotImplemented      = errors.New("not implemented yet")
+	ErrAgplConsentRequired = errors.New("AGPL-3.0 disclaimer not acknowledged — MiroFish must be invoked external-only")
+)
 
 // Status is the local installation state of an engine.
 type Status struct {
@@ -25,9 +28,25 @@ type Engine interface {
 	Repo() string
 	License() string
 	OptIn() bool
+
+	// Prereq returns the name of the external tool required to install this
+	// engine (e.g. "go", "pipx", "npm", "docker"). Empty string if no
+	// prerequisite is needed.
+	Prereq() string
+
+	// Command returns the install command as a slice (program + args), to be
+	// executed via internal/exec.Run. Multiversa prints this command to the
+	// user before running it.
+	Command(version string) []string
+
+	// Install is a convenience wrapper around Command. Most callers should
+	// use Command + exec.Run directly so they can stream progress.
 	Install(version string) error
-	Update() error
+
+	// Status checks whether the engine is already present locally.
 	Status() (Status, error)
+
+	// Uninstall removes the engine (best-effort).
 	Uninstall() error
 }
 

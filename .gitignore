@@ -13,3 +13,6 @@ coverage.txt
 .env.local
 *.local.toml
 node_modules/
+
+# private outreach drafts — never published
+/.outreach/

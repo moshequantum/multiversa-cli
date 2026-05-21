@@ -1,5 +1,9 @@
 package stack
 
+import (
+	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
+)
+
 type Engram struct{}
 
 func (Engram) ID() string          { return "engram" }
@@ -8,13 +12,26 @@ func (Engram) Author() string      { return "Gentleman-Programming" }
 func (Engram) Repo() string        { return "https://github.com/Gentleman-Programming/engram" }
 func (Engram) License() string     { return "MIT" }
 func (Engram) OptIn() bool         { return false }
+func (Engram) Prereq() string      { return "brew" }
 
-func (e Engram) Install(version string) error {
-	// TODO: `go install github.com/Gentleman-Programming/engram/cmd/engram@VERSION`
-	// or fetch a release binary from GitHub and place under ~/.multiversa/bin.
-	return ErrNotImplemented
+func (e Engram) Command(version string) []string {
+	return []string{"brew", "install", "gentleman-programming/tap/engram"}
 }
 
-func (e Engram) Update() error            { return ErrNotImplemented }
-func (e Engram) Status() (Status, error)  { return Status{}, ErrNotImplemented }
-func (e Engram) Uninstall() error         { return ErrNotImplemented }
+func (e Engram) Install(version string) error {
+	cmd := e.Command(version)
+	return xexec.Run(cmd[0], cmd[1:]...).Err
+}
+
+func (e Engram) Status() (Status, error) {
+	if !xexec.Check("engram") {
+		return Status{Installed: false}, nil
+	}
+	r := xexec.Run("engram", "--version")
+	if r.Err != nil {
+		return Status{Installed: true}, nil
+	}
+	return Status{Installed: true, Version: r.LastLine()}, nil
+}
+
+func (e Engram) Uninstall() error { return ErrNotImplemented }

@@ -1,5 +1,9 @@
 package stack
 
+import (
+	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
+)
+
 type CodeGraph struct{}
 
 func (CodeGraph) ID() string          { return "codegraph" }
@@ -8,12 +12,27 @@ func (CodeGraph) Author() string      { return "Colby McHenry" }
 func (CodeGraph) Repo() string        { return "https://github.com/colbymchenry/codegraph" }
 func (CodeGraph) License() string     { return "MIT" }
 func (CodeGraph) OptIn() bool         { return true }
+func (CodeGraph) Prereq() string      { return "npm" }
 
-func (c CodeGraph) Install(version string) error {
-	// TODO: `npm i -g codegraph` — confirm package name with upstream.
-	return ErrNotImplemented
+func (c CodeGraph) Command(version string) []string {
+	pkg := "@colbymchenry/codegraph"
+	if version != "" && version != "latest" {
+		pkg = "@colbymchenry/codegraph@" + version
+	}
+	return []string{"npm", "install", "-g", pkg}
 }
 
-func (c CodeGraph) Update() error           { return ErrNotImplemented }
-func (c CodeGraph) Status() (Status, error) { return Status{}, ErrNotImplemented }
-func (c CodeGraph) Uninstall() error        { return ErrNotImplemented }
+func (c CodeGraph) Install(version string) error {
+	cmd := c.Command(version)
+	return xexec.Run(cmd[0], cmd[1:]...).Err
+}
+
+func (c CodeGraph) Status() (Status, error) {
+	if !xexec.Check("codegraph") {
+		return Status{Installed: false}, nil
+	}
+	r := xexec.Run("codegraph", "--version")
+	return Status{Installed: true, Version: r.LastLine()}, nil
+}
+
+func (c CodeGraph) Uninstall() error { return ErrNotImplemented }
