@@ -1,0 +1,99 @@
+version: 2
+project_name: multiversa
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: multiversa
+    main: ./cmd/multiversa
+    binary: multiversa
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X github.com/moshequantum/multiversa-cli/internal/version.Version={{.Version}}
+      - -X github.com/moshequantum/multiversa-cli/internal/version.Commit={{.Commit}}
+      - -X github.com/moshequantum/multiversa-cli/internal/version.Date={{.Date}}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - CREDITS.md
+      - multiversa.toml.example
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Fixes
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+
+brews:
+  - name: multiversa
+    repository:
+      owner: moshequantum
+      name: homebrew-multiversa
+    homepage: https://github.com/moshequantum/multiversa-cli
+    description: "Agnostic pre-configurator for the curated agentic stack."
+    license: MIT
+    test: |
+      system "#{bin}/multiversa --version"
+
+scoops:
+  - repository:
+      owner: moshequantum
+      name: scoop-multiversa
+    homepage: https://github.com/moshequantum/multiversa-cli
+    description: "Agnostic pre-configurator for the curated agentic stack."
+    license: MIT
+
+nfpms:
+  - id: linux-packages
+    package_name: multiversa
+    vendor: Multiversa Lab
+    homepage: https://github.com/moshequantum/multiversa-cli
+    maintainer: Moshe <soymoisesweb@gmail.com>
+    description: "Agnostic pre-configurator for the curated agentic stack."
+    license: MIT
+    formats: [deb, rpm, archlinux]
+    bindir: /usr/bin
+
+dockers:
+  - image_templates:
+      - "ghcr.io/moshequantum/multiversa:{{ .Version }}"
+      - "ghcr.io/moshequantum/multiversa:latest"
+    dockerfile: installers/docker/Dockerfile
+
+release:
+  github:
+    owner: moshequantum
+    name: multiversa-cli
+  draft: false
+  prerelease: auto
+  header: |
+    ## Multiversa CLI {{ .Version }}
+
+    Curated agentic stack pre-configurator. See [CREDITS.md](CREDITS.md) for upstream attribution.

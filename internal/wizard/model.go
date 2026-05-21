@@ -1,0 +1,95 @@
+// Package wizard hosts the Bubble Tea program that drives the interactive
+// installer. Each screen is a Step (see internal/wizard/steps).
+package wizard
+
+import (
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/moshequantum/multiversa-cli/internal/wizard/steps"
+)
+
+type Model struct {
+	current int
+	steps   []steps.Step
+	width   int
+	height  int
+}
+
+func New() Model {
+	return Model{
+		steps: []steps.Step{
+			steps.NewWelcome(),
+			steps.NewConsent(),
+			steps.NewStack(),
+			steps.NewBackend(),
+			steps.NewReview(),
+			steps.NewInstall(),
+		},
+	}
+}
+
+func Run() error {
+	p := tea.NewProgram(New(), tea.WithAltScreen())
+	_, err := p.Run()
+	return err
+}
+
+func (m Model) Init() tea.Cmd {
+	return m.steps[m.current].Init()
+}
+
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		return m, nil
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+	case steps.NextMsg:
+		// before moving on, propagate state between steps
+		m.propagate()
+		if m.current+1 < len(m.steps) {
+			m.current++
+			return m, m.steps[m.current].Init()
+		}
+		return m, tea.Quit
+	case steps.BackMsg:
+		if m.current > 0 {
+			m.current--
+		}
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+	m.steps[m.current], cmd = m.steps[m.current].Update(msg)
+	return m, cmd
+}
+
+func (m Model) View() string {
+	return m.steps[m.current].View()
+}
+
+// propagate hands user choices from earlier steps into later ones (Review,
+// Install) when the wizard advances.
+func (m *Model) propagate() {
+	var engines []string
+	var backend string
+	for _, s := range m.steps {
+		switch v := s.(type) {
+		case *steps.Stack:
+			engines = v.Selected()
+		case *steps.Backend:
+			backend = v.Choice()
+		}
+	}
+	for _, s := range m.steps {
+		switch v := s.(type) {
+		case *steps.Review:
+			v.Set(engines, backend)
+		case *steps.Install:
+			v.Set(engines, backend)
+		}
+	}
+}

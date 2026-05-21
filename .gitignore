@@ -1,0 +1,15 @@
+/multiversa
+/dist/
+/bin/
+*.test
+*.out
+coverage.txt
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+.env
+.env.local
+*.local.toml
+node_modules/

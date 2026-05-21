@@ -1,0 +1,30 @@
+# multiversa.toml — declarative manifest for the agentic stack
+# https://github.com/moshequantum/multiversa-cli
+
+[multiversa]
+profile = "personal-os"          # personal-os | team | ecosystem
+ethic   = "human-in-the-loop"    # always — "La IA propone, tú decides"
+version = "0.1"
+
+# Engines to install. Comment out what you don't want.
+# Multiversa orchestrates these; it does NOT author them. See [credits] below.
+[stack]
+engram    = "Gentleman-Programming/engram@latest"
+graphify  = "safishamsi/graphify@latest"
+gentle_ai = "Gentleman-Programming/gentle-ai@latest"
+gentle_pi = "Gentleman-Programming/gentle-pi@latest"
+codegraph = "colbymchenry/codegraph@latest"      # opt-in
+# mirofish = "666ghj/MiroFish@latest"            # AGPL-3.0 — opt-in, external-only
+
+# Agents to wire up. Auto-detected if omitted.
+[agents]
+enabled = ["claude-code", "cursor", "codex", "gemini-cli", "opencode"]
+
+# Optional remote backend for multi-device sync. Default = local SQLite only.
+[backend]
+provider = "local"               # local | supabase | firebase | insforge
+# url      = "https://your-project.supabase.co"
+# anon_key = "..."
+
+[credits]
+auto_print = true                # print attribution after every install
