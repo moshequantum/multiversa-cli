@@ -13,6 +13,7 @@ type Backend struct {
 	cursor   int
 	choice   string
 	backends []backends.Backend
+	width    int
 }
 
 func NewBackend() Step {
@@ -20,29 +21,31 @@ func NewBackend() Step {
 	return &Backend{backends: bs, choice: "local"}
 }
 
-func (*Backend) Title() string  { return "Backend" }
-func (*Backend) Init() tea.Cmd  { return nil }
+func (*Backend) Title() string    { return "Backend" }
+func (*Backend) Init() tea.Cmd    { return nil }
 func (b *Backend) Choice() string { return b.choice }
 
 func (b *Backend) Update(msg tea.Msg) (Step, tea.Cmd) {
-	k, ok := msg.(tea.KeyMsg)
-	if !ok {
+	switch m := msg.(type) {
+	case tea.WindowSizeMsg:
+		b.width = m.Width
 		return b, nil
-	}
-	switch k.String() {
-	case "up", "k":
-		if b.cursor > 0 {
-			b.cursor--
+	case tea.KeyMsg:
+		switch m.String() {
+		case "up", "k":
+			if b.cursor > 0 {
+				b.cursor--
+			}
+		case "down", "j":
+			if b.cursor < len(b.backends)-1 {
+				b.cursor++
+			}
+		case "enter":
+			b.choice = b.backends[b.cursor].ID()
+			return b, Next
+		case "b":
+			return b, Back
 		}
-	case "down", "j":
-		if b.cursor < len(b.backends)-1 {
-			b.cursor++
-		}
-	case "enter":
-		b.choice = b.backends[b.cursor].ID()
-		return b, Next
-	case "b":
-		return b, Back
 	}
 	return b, nil
 }
@@ -62,7 +65,7 @@ func (b *Backend) View() string {
 
 	hint := theme.Dim.Render("[↑↓] mover  ·  [enter] elegir  ·  [b] atrás")
 
-	return theme.Box.Render(lipgloss.JoinVertical(lipgloss.Left,
+	return theme.Frame(b.width, lipgloss.JoinVertical(lipgloss.Left,
 		title, subtitle, "",
 		strings.Join(rows, "\n"),
 		"", hint,

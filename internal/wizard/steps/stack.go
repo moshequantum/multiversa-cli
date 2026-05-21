@@ -13,6 +13,7 @@ type Stack struct {
 	cursor   int
 	selected map[string]bool
 	engines  []stack.Engine
+	width    int
 }
 
 func NewStack() Step {
@@ -30,26 +31,28 @@ func (*Stack) Title() string { return "Stack" }
 func (*Stack) Init() tea.Cmd { return nil }
 
 func (s *Stack) Update(msg tea.Msg) (Step, tea.Cmd) {
-	k, ok := msg.(tea.KeyMsg)
-	if !ok {
+	switch m := msg.(type) {
+	case tea.WindowSizeMsg:
+		s.width = m.Width
 		return s, nil
-	}
-	switch k.String() {
-	case "up", "k":
-		if s.cursor > 0 {
-			s.cursor--
+	case tea.KeyMsg:
+		switch m.String() {
+		case "up", "k":
+			if s.cursor > 0 {
+				s.cursor--
+			}
+		case "down", "j":
+			if s.cursor < len(s.engines)-1 {
+				s.cursor++
+			}
+		case " ":
+			id := s.engines[s.cursor].ID()
+			s.selected[id] = !s.selected[id]
+		case "enter":
+			return s, Next
+		case "b":
+			return s, Back
 		}
-	case "down", "j":
-		if s.cursor < len(s.engines)-1 {
-			s.cursor++
-		}
-	case " ":
-		id := s.engines[s.cursor].ID()
-		s.selected[id] = !s.selected[id]
-	case "enter":
-		return s, Next
-	case "b":
-		return s, Back
 	}
 	return s, nil
 }
@@ -70,11 +73,9 @@ func (s *Stack) View() string {
 
 	var rows []string
 	for i, e := range s.engines {
-		mark := "  "
+		mark := theme.Dim.Render("○ ")
 		if s.selected[e.ID()] {
 			mark = theme.Accent.Render("● ")
-		} else {
-			mark = theme.Dim.Render("○ ")
 		}
 		cursor := "  "
 		if i == s.cursor {
@@ -94,7 +95,7 @@ func (s *Stack) View() string {
 
 	hint := theme.Dim.Render("[↑↓] mover  ·  [space] alternar  ·  [enter] continuar  ·  [b] atrás")
 
-	return theme.Box.Render(lipgloss.JoinVertical(lipgloss.Left,
+	return theme.Frame(s.width, lipgloss.JoinVertical(lipgloss.Left,
 		title, subtitle, "",
 		strings.Join(rows, "\n"),
 		"", hint,

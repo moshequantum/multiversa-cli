@@ -42,13 +42,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, nil
+		// Propagate size to every step so any of them can re-render correctly
+		// when activated later.
+		var cmds []tea.Cmd
+		for i := range m.steps {
+			var cmd tea.Cmd
+			m.steps[i], cmd = m.steps[i].Update(msg)
+			if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
+		return m, tea.Batch(cmds...)
 	case tea.KeyMsg:
 		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
 		}
 	case steps.NextMsg:
-		// before moving on, propagate state between steps
 		m.propagate()
 		if m.current+1 < len(m.steps) {
 			m.current++

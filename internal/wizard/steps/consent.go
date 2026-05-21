@@ -10,6 +10,7 @@ import (
 
 type Consent struct {
 	accepted bool
+	width    int
 }
 
 func NewConsent() Step { return &Consent{} }
@@ -18,8 +19,11 @@ func (*Consent) Title() string { return "Consent" }
 func (*Consent) Init() tea.Cmd { return nil }
 
 func (c *Consent) Update(msg tea.Msg) (Step, tea.Cmd) {
-	if k, ok := msg.(tea.KeyMsg); ok {
-		switch k.String() {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		c.width = msg.Width
+	case tea.KeyMsg:
+		switch msg.String() {
 		case "y", "Y":
 			c.accepted = true
 			return c, Next
@@ -46,7 +50,7 @@ func (c *Consent) View() string {
 	prompt := theme.Accent.Render("¿Aceptas el contrato? [y/n]")
 	hint := theme.Dim.Render("[b] atrás")
 
-	return theme.Box.Render(lipgloss.JoinVertical(lipgloss.Left,
+	return theme.Frame(c.width, lipgloss.JoinVertical(lipgloss.Left,
 		title, "", body, "", prompt, hint,
 	))
 }

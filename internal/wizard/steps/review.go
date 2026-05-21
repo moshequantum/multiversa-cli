@@ -11,6 +11,7 @@ import (
 type Review struct {
 	Engines []string
 	Backend string
+	width   int
 }
 
 func NewReview() Step { return &Review{} }
@@ -24,8 +25,12 @@ func (r *Review) Set(engines []string, backend string) {
 }
 
 func (r *Review) Update(msg tea.Msg) (Step, tea.Cmd) {
-	if k, ok := msg.(tea.KeyMsg); ok {
-		switch k.String() {
+	switch m := msg.(type) {
+	case tea.WindowSizeMsg:
+		r.width = m.Width
+		return r, nil
+	case tea.KeyMsg:
+		switch m.String() {
 		case "enter", "y", "Y":
 			return r, Next
 		case "b", "n", "N":
@@ -38,10 +43,13 @@ func (r *Review) Update(msg tea.Msg) (Step, tea.Cmd) {
 func (r *Review) View() string {
 	title := theme.Display.Render("Confirma")
 	engines := theme.Body.Render(strings.Join(r.Engines, ", "))
-	if engines == "" {
+	if r.Engines == nil || len(r.Engines) == 0 {
 		engines = theme.Dim.Render("(ninguno)")
 	}
 	backend := theme.Body.Render(r.Backend)
+	if r.Backend == "" {
+		backend = theme.Dim.Render("local (default)")
+	}
 
 	body := lipgloss.JoinVertical(lipgloss.Left,
 		title, "",
@@ -49,5 +57,5 @@ func (r *Review) View() string {
 		theme.Label10("Backend"), backend, "",
 		theme.Accent.Render("¿Instalar? [enter/y] sí  ·  [b/n] revisar"),
 	)
-	return theme.Box.Render(body)
+	return theme.Frame(r.width, body)
 }

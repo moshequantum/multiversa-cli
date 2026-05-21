@@ -8,17 +8,21 @@ import (
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 )
 
-type Welcome struct{}
+type Welcome struct {
+	width int
+}
 
-func NewWelcome() Step { return Welcome{} }
+func NewWelcome() Step { return &Welcome{} }
 
-func (Welcome) Title() string { return "Welcome" }
+func (*Welcome) Title() string { return "Welcome" }
+func (*Welcome) Init() tea.Cmd { return nil }
 
-func (Welcome) Init() tea.Cmd { return nil }
-
-func (w Welcome) Update(msg tea.Msg) (Step, tea.Cmd) {
-	if k, ok := msg.(tea.KeyMsg); ok {
-		switch k.String() {
+func (w *Welcome) Update(msg tea.Msg) (Step, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		w.width = msg.Width
+	case tea.KeyMsg:
+		switch msg.String() {
 		case "enter", " ":
 			return w, Next
 		}
@@ -26,7 +30,7 @@ func (w Welcome) Update(msg tea.Msg) (Step, tea.Cmd) {
 	return w, nil
 }
 
-func (w Welcome) View() string {
+func (w *Welcome) View() string {
 	title := theme.Display.Render("Multiversa") + " " + theme.Accent.Italic(true).Render("Lab")
 	tagline := theme.Body.Render("Orquesta el stack agentic curado.")
 	subtagline := theme.Dim.Render("Curated agentic stack — one command.")
@@ -56,5 +60,5 @@ func (w Welcome) View() string {
 		hint,
 	)
 
-	return theme.Box.Render(body)
+	return theme.Frame(w.width, body)
 }
