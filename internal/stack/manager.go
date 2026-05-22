@@ -30,8 +30,8 @@ type Engine interface {
 	OptIn() bool
 
 	// Prereq returns the name of the external tool required to install this
-	// engine (e.g. "go", "pipx", "npm", "docker"). Empty string if no
-	// prerequisite is needed.
+	// engine (e.g. "go", "pipx", "pnpm", "docker"). Empty string if no
+	// prerequisite is needed. NOTE: Multiversa policy bans npm — pnpm only.
 	Prereq() string
 
 	// Command returns the install command as a slice (program + args), to be

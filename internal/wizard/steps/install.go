@@ -105,7 +105,8 @@ func (i *Install) startEngine(idx int) tea.Cmd {
 		}
 	}
 
-	// Prereq check (e.g. `go`, `pipx`, `npm`, `docker` on PATH).
+	// Prereq check (e.g. `go`, `pipx`, `pnpm`, `docker` on PATH).
+	// Note: npm is banned across the Multiversa stack (pnpm-only policy).
 	if pre := eng.Prereq(); pre != "" && !xexec.Check(pre) {
 		i.statuses[id] = stPrereqMissing
 		return func() tea.Msg {
@@ -320,8 +321,8 @@ func prereqMissingMsg(tool string) string {
 		return "install Go from https://go.dev/dl/"
 	case "pipx":
 		return "install pipx — see https://pipx.pypa.io"
-	case "npm":
-		return "install Node.js + npm from https://nodejs.org"
+	case "pnpm":
+		return "install pnpm — `curl -fsSL https://get.pnpm.io/install.sh | sh -` (npm is banned by policy)"
 	case "docker":
 		return "install Docker from https://docs.docker.com/get-docker/"
 	default:

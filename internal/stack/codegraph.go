@@ -12,14 +12,16 @@ func (CodeGraph) Author() string      { return "Colby McHenry" }
 func (CodeGraph) Repo() string        { return "https://github.com/colbymchenry/codegraph" }
 func (CodeGraph) License() string     { return "MIT" }
 func (CodeGraph) OptIn() bool         { return true }
-func (CodeGraph) Prereq() string      { return "npm" }
+func (CodeGraph) Prereq() string      { return "pnpm" }
 
 func (c CodeGraph) Command(version string) []string {
+	// pnpm-only by Multiversa policy. npm is banned across the stack — see
+	// docs and project-rules-pnpm-only memory note.
 	pkg := "@colbymchenry/codegraph"
 	if version != "" && version != "latest" {
 		pkg = "@colbymchenry/codegraph@" + version
 	}
-	return []string{"npm", "install", "-g", pkg}
+	return []string{"pnpm", "add", "-g", pkg}
 }
 
 func (c CodeGraph) Install(version string) error {

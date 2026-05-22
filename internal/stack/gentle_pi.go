@@ -12,14 +12,16 @@ func (GentlePi) Author() string      { return "Gentleman-Programming" }
 func (GentlePi) Repo() string        { return "https://github.com/Gentleman-Programming/gentle-pi" }
 func (GentlePi) License() string     { return "MIT" }
 func (GentlePi) OptIn() bool         { return false }
-func (GentlePi) Prereq() string      { return "npm" }
+func (GentlePi) Prereq() string      { return "pnpm" }
 
 func (g GentlePi) Command(version string) []string {
+	// pnpm-only by Multiversa policy. npm is banned across the stack — see
+	// docs and project-rules-pnpm-only memory note.
 	pkg := "gentle-pi"
 	if version != "" && version != "latest" {
 		pkg = "gentle-pi@" + version
 	}
-	return []string{"npm", "install", "-g", pkg}
+	return []string{"pnpm", "add", "-g", pkg}
 }
 
 func (g GentlePi) Install(version string) error {
