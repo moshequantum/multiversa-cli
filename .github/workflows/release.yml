@@ -1,0 +1,53 @@
+name: release
+
+# Triggers GoReleaser on every annotated tag matching v*. The first
+# release (v0.3.0) publishes only the cross-platform binary archives
+# + checksums via the default GITHUB_TOKEN. Brew, scoop, nfpm, and
+# docker steps are skipped until the corresponding tap / bucket / PAT
+# / ghcr.io login are configured — see the `skip` flag below.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # GoReleaser needs this to upload release assets.
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # GoReleaser uses tags + history for the changelog.
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      # Verify embedded scripts match the skill copies before release.
+      # Skipped on CI because the lab-setup skill isn't checked out
+      # here — the gate runs locally via `make verify-scripts`.
+      - name: Build sanity check
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          # Skip publication targets that need external configuration:
+          #   homebrew → needs HOMEBREW_TAP_GITHUB_TOKEN secret + homebrew-multiversa repo
+          #   scoop    → needs SCOOP_BUCKET_GITHUB_TOKEN secret + scoop-multiversa repo
+          #   nfpm     → produces .deb/.rpm/.archlinux locally, ok but needs apt/yum tap repos to be useful
+          #   docker   → needs ghcr.io login + image push permissions
+          # Once those are set up, remove flags here one by one.
+          args: release --clean --skip=homebrew,scoop,docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
