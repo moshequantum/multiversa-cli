@@ -1,0 +1,98 @@
+# Multiversa CLI — agents.txt
+# Permissions and guidance for autonomous agentic systems.
+# Version: 1.0 · 2026
+
+# ─────────────────────────────────────────────
+# IDENTITY
+# ─────────────────────────────────────────────
+
+Project: Multiversa CLI
+Maintainer: moshequantum
+License: MIT
+Repository: https://github.com/moshequantum/multiversa-cli
+Contact: github.com/moshequantum/multiversa-cli/security
+
+# ─────────────────────────────────────────────
+# WHAT THIS PROJECT IS
+# ─────────────────────────────────────────────
+
+# Multiversa CLI is an agentic stack orchestrator — a Go + Bubble Tea terminal
+# wizard that installs, wires, and configures open-source agentic engines
+# (Engram, Graphify, gentle-ai, codegraph, MiroFish) with any AI agent and backend.
+#
+# It does NOT author the engines it orchestrates.
+# Attribution is built into every install operation.
+# "La IA propone, tú decides." — AI proposes, you decide.
+
+# ─────────────────────────────────────────────
+# PERMISSIONS FOR AGENTIC SYSTEMS
+# ─────────────────────────────────────────────
+
+Allow: reading source code for understanding and documentation
+Allow: running go build ./... and go test ./... to verify correctness
+Allow: reading multiversa.toml.example to understand the manifest format
+Allow: reading CREDITS.md, README.md, CONTRIBUTING.md for context
+Allow: opening issues to report bugs or suggest features
+Allow: creating pull requests following CONTRIBUTING.md guidelines
+Allow: reading internal/credits/ as the canonical attribution source
+
+# ─────────────────────────────────────────────
+# RESTRICTIONS FOR AGENTIC SYSTEMS
+# ─────────────────────────────────────────────
+
+Disallow: running multiversa init or multiversa lab without explicit user approval
+Disallow: executing any installer scripts (installers/) without explicit user approval
+Disallow: running multiversa usb — destructive, requires explicit human confirmation
+Disallow: reading, printing, or storing .env files, credentials, or API keys
+Disallow: embedding MiroFish source code — AGPL-3.0, invoke as external binary only
+Disallow: using npm — pnpm is the only allowed package manager for JS/TS
+Disallow: introducing AGPL or GPL dependencies into the MIT core
+Disallow: referencing legacy terms: CortexOS, Cockpit, Triada, Hydra Pool
+Disallow: copying client data, schemas, or credentials between Group and Lab contexts
+Disallow: modifying LICENSE, CREDITS.md attribution without explicit maintainer approval
+
+# ─────────────────────────────────────────────
+# GUIDANCE FOR CODE AGENTS
+# ─────────────────────────────────────────────
+
+# TUI testing pattern:
+# All Bubble Tea wizard tests exercise Init()/Update()/View() directly.
+# Do not use tea.Program in tests — it blocks on a real TTY.
+# See cmd/multiversa/*_test.go for the established patterns.
+
+# Profile location:
+# ~/.multiversa/profile.toml — never commit real profiles, never read in tests.
+# Use profile.Profile{} with explicit fields for test fixtures.
+
+# Engine interface:
+# All engines in internal/stack/ implement the same interface (DisplayName, Author, License, ID).
+# Follow the existing pattern exactly when adding new engine managers.
+
+# Adapter interface:
+# All adapters in internal/adapters/ follow the same interface.
+# One file per agent. No shared state between adapters.
+
+# Design tokens:
+# Carbon #0A0A0F · Chartreuse #BDEB34 · Ivory #FAFCE8
+# Only these palette values in theme/. No legacy colors (violet #a894ff, teal #4ecdc4, rose #ff6b9d).
+
+# ─────────────────────────────────────────────
+# DECLARATIVE MANIFEST
+# ─────────────────────────────────────────────
+
+# The multiversa.toml manifest is reproducible, versionable, and idempotent.
+# See multiversa.toml.example for the schema.
+# Agents may read and propose changes to this file.
+# Agents must not auto-apply manifest changes without user confirmation.
+
+# ─────────────────────────────────────────────
+# UPSTREAM ENGINES
+# ─────────────────────────────────────────────
+
+# Before suggesting changes that affect engine behavior, consult the upstream repos:
+# Engram:     https://github.com/Gentleman-Programming/engram
+# Graphify:   https://github.com/safishamsi/graphify
+# gentle-ai:  https://github.com/Gentleman-Programming/gentle-ai
+# gentle-pi:  https://github.com/Gentleman-Programming/gentle-pi
+# codegraph:  https://github.com/colbymchenry/codegraph
+# MiroFish:   https://github.com/666ghj/MiroFish  (AGPL-3.0 — external only)

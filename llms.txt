@@ -1,0 +1,80 @@
+# Multiversa CLI
+
+> Agnostic orchestrator for the curated open-source agentic intelligence stack.
+> One command, every engine, any agent. AI proposes, you decide.
+
+Multiversa CLI is a Go + Bubble Tea terminal wizard (TUI) that installs, wires, and configures
+a curated set of open-source agentic engines so they work together — with whichever AI agent
+the user already has, on whichever backend they prefer.
+
+It does NOT author the engines it orchestrates. Attribution is built into every install.
+
+## Key concepts
+
+- **Lab**: The open MIT ecosystem layer — what this CLI installs and configures.
+- **Brain**: Engram (persistent cross-session memory) + Graphify (knowledge graph) — the cognitive substrate.
+- **Group**: The private consulting tier — not in this repository.
+- **Agent agnosticism**: Works with Claude Code, Cursor, Codex, Gemini CLI, OpenCode, Aider, Cline, Continue, Roo-Code, and any MCP-compatible agent.
+- **Backend agnosticism**: Local SQLite (default), Supabase, Firebase, or InsForge.
+
+## Orchestrated engines
+
+- **Engram** (Gentleman-Programming, MIT) — persistent agent memory
+- **Graphify** (Safi Shamsi, MIT) — content-to-knowledge-graph transformation
+- **gentle-ai** (Gentleman-Programming, MIT) — agentic ecosystem configurator
+- **gentle-pi** (Gentleman-Programming, MIT) — SDD harness for the Pi agent
+- **codegraph** (Colby McHenry, MIT) — semantic code knowledge graph via tree-sitter
+- **MiroFish** (666ghj, AGPL-3.0) — multi-agent swarm simulation (opt-in, external binary only)
+
+## Commands
+
+- `multiversa lab` — consultive meta-wizard organized by layer (Técnica / Identitaria / Operacional)
+- `multiversa init` — full interactive setup wizard
+- `multiversa detect` — read-only environment scan (OS, toolchain, present engines)
+- `multiversa stack` — install base toolchain (Go, Rust, Python, Node, pnpm, Docker)
+- `multiversa add <engine>` — add a single engine to the stack
+- `multiversa connect <agent>` — wire an AI agent connector
+- `multiversa backend <name>` — configure optional remote backend
+- `multiversa credits` — print full upstream attribution
+- `multiversa doctor` — health check for the installed stack
+- `multiversa version` — current version
+
+## Architecture
+
+- `cmd/multiversa/` — Cobra commands + Bubble Tea TUI models
+- `internal/tui/` — shared TUI primitives (Step, Header, Selector, ProgressList, Sidebar, Verbosity)
+- `internal/profile/` — user profile (Layer enum, InstalledEngines, Engram subprocess bridge)
+- `internal/adapters/` — per-agent connectors (claude-code, cursor, codex, gemini-cli, opencode, aider, cline, continue, roo-code, generic-mcp)
+- `internal/backends/` — per-backend sync layer (local, supabase, firebase, insforge)
+- `internal/stack/` — per-engine managers with install plans
+- `internal/detect/` — environment scanner (OS, architecture, package manager, installed tools)
+- `internal/credits/` — single source of truth for upstream attribution
+- `internal/theme/` — Lipgloss design tokens (Carbon #0A0A0F, Chartreuse #BDEB34, Ivory #FAFCE8)
+
+## What LLMs should know when working with this codebase
+
+- TUI tests exercise Init()/Update()/View() directly without a real tea.Program — this is intentional.
+- The Stack registry lives in internal/stack/ — each engine implements a common interface.
+- Adapters in internal/adapters/ follow the same interface pattern — one file per agent.
+- The profile is a TOML file at ~/.multiversa/profile.toml — never commit real profiles.
+- MiroFish is AGPL-3.0 and must NEVER be embedded; invoke as external binary/service only.
+- pnpm only for any JS/TS work — npm is banned across the ecosystem.
+- Legacy terms to avoid: CortexOS, Cockpit, Triada, Hydra Pool, cortex-frontend, cortex-desktop.
+
+## Declarative manifest
+
+See `multiversa.toml.example` for the reproducible, versionable, idempotent config format.
+
+## License
+
+MIT — Moshe (moshequantum) — Multiversa Lab, 2026.
+Curation, architecture, design system, and the ethic "La IA propone, tú decides" belong to Multiversa Lab.
+
+## Links
+
+- [README](README.md): Overview, install, usage
+- [CREDITS](CREDITS.md): Full upstream attribution
+- [CONTRIBUTING](CONTRIBUTING.md): Contribution guide
+- [SECURITY](SECURITY.md): Vulnerability reporting
+- [LICENSE](LICENSE): MIT full text
+- [multiversa.toml.example](multiversa.toml.example): Declarative manifest format

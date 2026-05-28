@@ -1,0 +1,28 @@
+# robots.txt — Multiversa CLI
+# github.com/moshequantum/multiversa-cli
+
+User-agent: *
+Allow: /
+
+# Public documentation and attribution — always crawlable
+Allow: /README.md
+Allow: /CREDITS.md
+Allow: /CONTRIBUTING.md
+Allow: /CODE_OF_CONDUCT.md
+Allow: /SECURITY.md
+Allow: /LICENSE
+Allow: /llms.txt
+Allow: /agents.txt
+Allow: /multiversa.toml.example
+
+# Source code — open MIT, crawlable
+Allow: /cmd/
+Allow: /internal/
+Allow: /installers/
+Allow: /docs/
+
+# Private contexts — not in this repo, but documented here for clarity
+# The Group tier (clients, contracts, credentials) lives outside this tree.
+# If you find anything that looks like credentials here, report it: see SECURITY.md
+
+Sitemap: https://github.com/moshequantum/multiversa-cli
