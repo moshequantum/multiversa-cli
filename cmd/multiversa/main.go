@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/moshequantum/multiversa-cli/internal/credits"
-	"github.com/moshequantum/multiversa-cli/internal/detect"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 	"github.com/moshequantum/multiversa-cli/internal/version"
 	"github.com/moshequantum/multiversa-cli/internal/wizard"
@@ -76,45 +75,6 @@ func newVersionCmd() *cobra.Command {
 		Short: "Print the CLI version.",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Println("multiversa", version.Full())
-		},
-	}
-}
-
-// newDetectCmd is the canonical environment scanner. It is read-only:
-// no installs, no network, no mutation. The output also drives the
-// `/lab-setup` Claude Code skill, so the report shape is intentionally
-// stable.
-func newDetectCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:     "detect",
-		Aliases: []string{"scan"},
-		Short:   "Scan the host: OS, package manager, dev stack, Multiversa state.",
-		Long: "Run a read-only scan of the local environment. Reports OS and\n" +
-			"package manager, the developer toolchain (Go, Rust, Python, Node,\n" +
-			"pnpm, Docker, …), the Multiversa CLI state, and the curated engines.\n\n" +
-			"This command is safe to run anywhere: it never installs, fetches,\n" +
-			"or modifies anything. Use `multiversa init` afterwards to act on\n" +
-			"the findings.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			report := detect.Run()
-			report.Render(os.Stdout)
-			return nil
-		},
-	}
-}
-
-// newDoctorCmd is kept as an ergonomic alias for users who reach for
-// `doctor` out of habit (npm, brew, dotnet, etc. all have one). It
-// delegates to the same detect report so there is one source of truth.
-func newDoctorCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:    "doctor",
-		Short:  "Alias of `multiversa detect`.",
-		Hidden: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			report := detect.Run()
-			report.Render(os.Stdout)
-			return nil
 		},
 	}
 }
