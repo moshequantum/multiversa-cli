@@ -193,7 +193,7 @@ Ver [SECURITY.md](SECURITY.md) para reportar vulnerabilidades de forma responsab
 
 ## Licencia · License
 
-[MIT](LICENSE). Curaduría, arquitectura, sistema de diseño y la ética *"La IA propone, tú decides"*: Moshe — Multiversa Lab / Multiversa Group.
+[MIT](LICENSE). Curaduría, arquitectura, sistema de diseño y la ética *"La IA propone, tú decides"*: Multiversa Group LLC — Multiversa Lab.
 
 ---
 

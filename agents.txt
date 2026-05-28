@@ -7,6 +7,7 @@
 # ─────────────────────────────────────────────
 
 Project: Multiversa CLI
+Owner: Multiversa Group LLC
 Maintainer: moshequantum
 License: MIT
 Repository: https://github.com/moshequantum/multiversa-cli

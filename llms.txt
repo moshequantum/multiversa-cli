@@ -67,8 +67,8 @@ See `multiversa.toml.example` for the reproducible, versionable, idempotent conf
 
 ## License
 
-MIT — Moshe (moshequantum) — Multiversa Lab, 2026.
-Curation, architecture, design system, and the ethic "La IA propone, tú decides" belong to Multiversa Lab.
+MIT — Multiversa Group LLC, 2026.
+Curation, architecture, design system, and the ethic "La IA propone, tú decides" belong to Multiversa Group LLC — Multiversa Lab.
 
 ## Links
 

@@ -45,4 +45,4 @@ Para vulnerabilidades de seguridad: ver [SECURITY.md](SECURITY.md).
 
 ---
 
-*Multiversa Lab · MIT · 2026*
+*Multiversa Group LLC — Multiversa Lab · MIT · 2026*

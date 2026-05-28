@@ -44,4 +44,4 @@ Este proyecto es un wizard CLI local. El modelo de amenaza relevante:
 
 ---
 
-*Multiversa Lab · MIT · 2026*
+*Multiversa Group LLC — Multiversa Lab · MIT · 2026*

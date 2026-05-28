@@ -59,4 +59,4 @@ If Multiversa is useful to you, **star these repos first**.
 
 Curation, architecture, design system (Carbon · Chartreuse · Ivory, Playfair · Sora · JetBrains Mono), the ethic *"La IA propone, tú decides"*, the CLI orchestration code itself, the `multiversa.toml` schema, and the umbrella brand.
 
-*Moshe — Multiversa Lab / Multiversa Group, 2026.*
+*Multiversa Group LLC — Multiversa Lab (MIT), 2026.*
