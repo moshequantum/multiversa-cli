@@ -92,19 +92,23 @@ Si te resulta útil, **dales star a sus repos primero**. Sin ellos, esto no exis
 ## Instalación · Install
 
 ```bash
-# macOS (Homebrew)
+# Go — funciona ahora en cualquier plataforma
+go install github.com/moshequantum/multiversa-cli/cmd/multiversa@latest
+```
+
+Los siguientes canales están planificados para v0.5.0 y aún no están activos:
+
+```bash
+# [planned v0.5.0] macOS — Homebrew tap
 brew tap moshequantum/multiversa
 brew install multiversa
 
-# Linux / macOS / WSL — un comando, sin dependencias previas
+# [planned v0.5.0] Linux / macOS / WSL — curl installer
 curl -sSL https://raw.githubusercontent.com/moshequantum/multiversa-cli/main/installers/shell-curl/install.sh | sh
 
-# Windows (Scoop)
+# [planned v0.5.0] Windows — Scoop bucket
 scoop bucket add multiversa https://github.com/moshequantum/scoop-multiversa
 scoop install multiversa
-
-# Go (cualquier plataforma)
-go install github.com/moshequantum/multiversa-cli/cmd/multiversa@latest
 ```
 
 ---

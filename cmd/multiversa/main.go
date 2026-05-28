@@ -26,14 +26,18 @@ func main() {
 	}
 
 	root.AddCommand(
+		newLabCmd(),
 		newInitCmd(),
-		newCreditsCmd(),
-		newVersionCmd(),
 		newDetectCmd(),
-		newDoctorCmd(),
 		newStackCmd(),
 		newWorkspaceCmd(),
 		newUSBCmd(),
+		newAddCmd(),
+		newConnectCmd(),
+		newBackendCmd(),
+		newDoctorCmd(),
+		newCreditsCmd(),
+		newVersionCmd(),
 		newManifestCmd(),
 	)
 
