@@ -13,15 +13,11 @@ import (
 	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
 	"github.com/moshequantum/multiversa-cli/internal/lang"
 	"github.com/moshequantum/multiversa-cli/internal/profile"
+	istack "github.com/moshequantum/multiversa-cli/internal/stack"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
+	"github.com/moshequantum/multiversa-cli/internal/tui"
 )
 
-// newStackCmd installs the OS-level developer toolchain — Go, Rust,
-// Python, Node, pnpm, Docker. v0.4.0 unifies the UX behind the shared
-// internal/tui primitives: when stdout is a TTY and --yes is NOT set,
-// the command launches a Bubble Tea program (Selector → ProgressList).
-// Otherwise it falls back to the non-interactive plan/print path so
-// CI, pipes, and --yes scripted runs keep working unchanged.
 func newStackCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stack",
@@ -53,8 +49,6 @@ type stackOpts struct {
 	out    io.Writer
 }
 
-// runStack is the entry point. It decides between the TUI flow and the
-// non-interactive flow based on stdout-is-tty + --yes.
 func runStack(opts stackOpts) error {
 	if opts.out == nil {
 		opts.out = os.Stdout
@@ -62,14 +56,11 @@ func runStack(opts stackOpts) error {
 	planned, report := planStack(opts)
 
 	if shouldRunTUI(opts) {
-		return runStackTUI(opts, report, planned)
+		return tui.RunStackTUI(opts.out, report, planned)
 	}
 	return runStackNonInteractive(opts, report, planned)
 }
 
-// shouldRunTUI gates the Bubble Tea path. The non-interactive path is
-// used whenever stdout is not a TTY (pipes, CI) or the caller asked for
-// --yes (scripted), preserving v0.3.0 behavior for those callers.
 func shouldRunTUI(opts stackOpts) bool {
 	if opts.yes || opts.dryRun {
 		return false
@@ -81,33 +72,28 @@ func shouldRunTUI(opts stackOpts) bool {
 	return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
 }
 
-// planStack runs detection and builds the working set once. Used by
-// both the TUI and the non-interactive paths.
-func planStack(opts stackOpts) ([]toolPlan, detect.Report) {
+func planStack(opts stackOpts) ([]istack.ToolPlan, detect.Report) {
 	report := detect.Run()
 	onlySet := toSet(opts.only)
 	tools := lang.Registry()
 
-	var planned []toolPlan
+	var planned []istack.ToolPlan
 	for _, t := range tools {
 		if len(onlySet) > 0 && !onlySet[t.ID()] {
 			continue
 		}
-		tp := toolPlan{tool: t, installed: t.Installed()}
-		if !tp.installed {
+		tp := istack.ToolPlan{Tool: t, Installed: t.Installed()}
+		if !tp.Installed {
 			plan, err := t.PlanFor(report.OS.Kind, report.OS.PkgMgr)
-			tp.plan = plan
-			tp.err = err
+			tp.Plan = plan
+			tp.Err = err
 		}
 		planned = append(planned, tp)
 	}
 	return planned, report
 }
 
-// runStackNonInteractive preserves the v0.3.0 behavior: print summary,
-// either dry-run or honor --yes (no per-step prompt when --yes is set;
-// otherwise a basic Y/N prompt). Used in CI/pipes/scripted runs.
-func runStackNonInteractive(opts stackOpts, report detect.Report, planned []toolPlan) error {
+func runStackNonInteractive(opts stackOpts, report detect.Report, planned []istack.ToolPlan) error {
 	fmt.Fprintln(opts.out, theme.Accent.Render("multiversa stack"))
 	fmt.Fprintln(opts.out, theme.Dim.Render(fmt.Sprintf("host: %s/%s · %s · pkg-mgr: %s",
 		report.OS.Kind, report.OS.Arch, report.OS.Distro, displayPkgMgr(report.OS.PkgMgr))))
@@ -131,27 +117,27 @@ func runStackNonInteractive(opts stackOpts, report detect.Report, planned []tool
 	prof, _ := profile.Load()
 	var installed, skipped, failed int
 	for _, tp := range planned {
-		if tp.installed {
+		if tp.Installed {
 			skipped++
 			continue
 		}
-		if tp.err != nil {
-			fmt.Fprintf(opts.out, "%s %s: %v\n", theme.Warn.Render("⚠"), tp.tool.DisplayName(), tp.err)
+		if tp.Err != nil {
+			fmt.Fprintf(opts.out, "%s %s: %v\n", theme.Warn.Render("⚠"), tp.Tool.DisplayName(), tp.Err)
 			failed++
 			continue
 		}
 		if !opts.yes && !confirmInstall(opts.out, tp) {
-			fmt.Fprintf(opts.out, "%s %s omitido\n", theme.Dim.Render("·"), tp.tool.DisplayName())
+			fmt.Fprintf(opts.out, "%s %s omitido\n", theme.Dim.Render("·"), tp.Tool.DisplayName())
 			skipped++
 			continue
 		}
-		if err := executePlan(tp.plan); err != nil {
-			fmt.Fprintf(opts.out, "%s %s falló: %v\n", theme.Warn.Render("✗"), tp.tool.DisplayName(), err)
+		if err := xexec.RunPlan(tp.Plan); err != nil {
+			fmt.Fprintf(opts.out, "%s %s falló: %v\n", theme.Warn.Render("✗"), tp.Tool.DisplayName(), err)
 			failed++
 			continue
 		}
-		fmt.Fprintf(opts.out, "%s %s instalado\n", theme.Accent.Render("✓"), tp.tool.DisplayName())
-		prof.MarkInstalled(tp.tool.ID())
+		fmt.Fprintf(opts.out, "%s %s instalado\n", theme.Accent.Render("✓"), tp.Tool.DisplayName())
+		prof.MarkInstalled(tp.Tool.ID())
 		installed++
 	}
 	_ = prof.Save()
@@ -165,45 +151,27 @@ func runStackNonInteractive(opts stackOpts, report detect.Report, planned []tool
 	return nil
 }
 
-// toolPlan bundles a Tool with its current state and Plan for output.
-type toolPlan struct {
-	tool      lang.Tool
-	installed bool
-	plan      lang.Plan
-	err       error
-}
-
-func printToolRow(w io.Writer, tp toolPlan) {
-	id := lipglossPad(tp.tool.ID(), 10)
+func printToolRow(w io.Writer, tp istack.ToolPlan) {
+	id := lipglossPad(tp.Tool.ID(), 10)
 	switch {
-	case tp.installed:
+	case tp.Installed:
 		fmt.Fprintf(w, "  %s %s %s\n", theme.Accent.Render("✓"), id, theme.Dim.Render("ya instalado"))
-	case tp.err != nil:
-		fmt.Fprintf(w, "  %s %s %s\n", theme.Warn.Render("⚠"), id, theme.Warn.Render(tp.err.Error()))
+	case tp.Err != nil:
+		fmt.Fprintf(w, "  %s %s %s\n", theme.Warn.Render("⚠"), id, theme.Warn.Render(tp.Err.Error()))
 	default:
-		fmt.Fprintf(w, "  %s %s %s\n", theme.Dim.Render("·"), id, theme.Body.Render(planSummary(tp.plan)))
+		fmt.Fprintf(w, "  %s %s %s\n", theme.Dim.Render("·"), id, theme.Body.Render(istack.PlanSummary(tp.Plan)))
 	}
 }
 
-func planSummary(p lang.Plan) string {
-	switch {
-	case p.Shell != "":
-		return truncate(p.Shell, 70)
-	case p.Program != "":
-		return truncate(p.Program+" "+strings.Join(p.Args, " "), 70)
-	}
-	return "(sin plan)"
-}
-
-func confirmInstall(w io.Writer, tp toolPlan) bool {
-	fmt.Fprintf(w, "\n%s %s\n", theme.Accent.Render("instalar"), tp.tool.DisplayName())
-	if tp.plan.Shell != "" {
-		fmt.Fprintln(w, "  "+theme.Body.Render("$ "+tp.plan.Shell))
+func confirmInstall(w io.Writer, tp istack.ToolPlan) bool {
+	fmt.Fprintf(w, "\n%s %s\n", theme.Accent.Render("instalar"), tp.Tool.DisplayName())
+	if tp.Plan.Shell != "" {
+		fmt.Fprintln(w, "  "+theme.Body.Render("$ "+tp.Plan.Shell))
 	} else {
-		fmt.Fprintln(w, "  "+theme.Body.Render("$ "+tp.plan.Program+" "+strings.Join(tp.plan.Args, " ")))
+		fmt.Fprintln(w, "  "+theme.Body.Render("$ "+tp.Plan.Program+" "+strings.Join(tp.Plan.Args, " ")))
 	}
-	if tp.plan.Notes != "" {
-		fmt.Fprintln(w, "  "+theme.Dim.Render(tp.plan.Notes))
+	if tp.Plan.Notes != "" {
+		fmt.Fprintln(w, "  "+theme.Dim.Render(tp.Plan.Notes))
 	}
 	fmt.Fprint(w, theme.Label.Render("¿proceder? [y/N] "))
 	var ans string
@@ -212,21 +180,6 @@ func confirmInstall(w io.Writer, tp toolPlan) bool {
 	}
 	ans = strings.ToLower(strings.TrimSpace(ans))
 	return ans == "y" || ans == "yes"
-}
-
-func executePlan(p lang.Plan) error {
-	if p.Shell != "" {
-		// `sh -c` is deliberate: rustup, pnpm, nvm, pyenv all ship as
-		// curl-pipe-shell installers and the Plan.Shell field already
-		// encodes that exact pipeline.
-		r := xexec.Run("sh", "-c", p.Shell)
-		if r.Err != nil {
-			return r.Err
-		}
-		return nil
-	}
-	r := xexec.Run(p.Program, p.Args...)
-	return r.Err
 }
 
 func displayPkgMgr(p string) string {
@@ -247,15 +200,6 @@ func toSet(items []string) map[string]bool {
 	return s
 }
 
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return s[:n-1] + "…"
-}
-
-// lipglossPad pads a string with spaces to a fixed width. Plain ASCII —
-// rendering is applied separately by the caller.
 func lipglossPad(s string, width int) string {
 	if len(s) >= width {
 		return s
