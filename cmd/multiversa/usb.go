@@ -298,11 +298,3 @@ func (m USBModel) View() string {
 func confirmUSBPhrase(input string) bool {
 	return strings.ToLower(strings.TrimSpace(input)) == usbConfirmPhrase
 }
-
-func isTTY(w io.Writer) bool {
-	f, ok := w.(*os.File)
-	if !ok {
-		return false
-	}
-	return f == os.Stdout
-}
