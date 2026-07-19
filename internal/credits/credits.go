@@ -12,14 +12,14 @@ import (
 )
 
 type Source struct {
-	ID       string
-	Name     string
-	Author   string
-	Repo     string
-	License  string
-	Role     string
-	OptIn    bool
-	AgplGate bool // true if license is AGPL and must never be embedded
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Author   string `json:"author"`
+	Repo     string `json:"repo"`
+	License  string `json:"license"`
+	Role     string `json:"role"`
+	OptIn    bool   `json:"opt_in"`
+	AgplGate bool   `json:"agpl_gate"` // true if license is AGPL and must never be embedded
 }
 
 var Sources = []Source{

@@ -11,9 +11,25 @@ import "github.com/moshequantum/multiversa-cli/internal/stack"
 // Charm-styled string for the terminal; the same struct can be JSON-encoded
 // for the skill layer in Claude Code.
 type Report struct {
-	OS         OSInfo
-	Tools      []Tool
-	Multiversa MultiversaState
+	OS         OSInfo          `json:"os"`
+	Tools      []Tool          `json:"tools"`
+	Multiversa MultiversaState `json:"multiversa"`
+}
+
+// Summary is the aggregate readiness view included in JSON output so
+// agents can branch on totals without re-deriving them.
+type Summary struct {
+	ToolsReady   int `json:"tools_ready"`
+	ToolsTotal   int `json:"tools_total"`
+	EnginesReady int `json:"engines_ready"`
+	EnginesTotal int `json:"engines_total"`
+}
+
+// Summarize computes the Summary for this report.
+func (r Report) Summarize() Summary {
+	ti, tt := r.ReadyTools()
+	ei, et := r.ReadyEngines()
+	return Summary{ToolsReady: ti, ToolsTotal: tt, EnginesReady: ei, EnginesTotal: et}
 }
 
 // Run executes a full local scan and returns the populated Report.

@@ -10,21 +10,21 @@ import (
 // Advisory=true means presence is informational only (e.g. npm — banned by
 // policy, we flag it but don't fail).
 type Tool struct {
-	Name      string
-	Installed bool
-	Version   string
-	Advisory  bool // true = informational only, not a "missing" failure
-	Warn      bool // true = present but flagged (e.g. npm policy violation)
-	Category  string
-	Path      string
+	Name      string `json:"name"`
+	Installed bool   `json:"installed"`
+	Version   string `json:"version,omitempty"`
+	Advisory  bool   `json:"advisory"` // true = informational only, not a "missing" failure
+	Warn      bool   `json:"warn"`     // true = present but flagged (e.g. npm policy violation)
+	Category  string `json:"category"`
+	Path      string `json:"path,omitempty"`
 }
 
 // toolProbe describes one item we want to check on the host.
 type toolProbe struct {
-	name     string
-	category string
-	versionArgs []string
-	advisory bool
+	name          string
+	category      string
+	versionArgs   []string
+	advisory      bool
 	warnIfPresent bool
 }
 

@@ -12,21 +12,21 @@ import (
 // up on this host: the CLI itself, each curated engine, and any locally
 // detected repos.
 type MultiversaState struct {
-	CLIInstalled bool
-	CLIVersion   string
-	HomeDir      string   // ~/.multiversa, if it exists
-	Engines      []EngineState
-	Repos        []string // detected repo paths under common locations
+	CLIInstalled bool          `json:"cli_installed"`
+	CLIVersion   string        `json:"cli_version,omitempty"`
+	HomeDir      string        `json:"home_dir,omitempty"` // ~/.multiversa, if it exists
+	Engines      []EngineState `json:"engines"`
+	Repos        []string      `json:"repos,omitempty"` // detected repo paths under common locations
 }
 
 // EngineState is the per-engine slice of the Multiversa report.
 type EngineState struct {
-	ID        string
-	Name      string
-	Author    string
-	Installed bool
-	Version   string
-	OptIn     bool
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Author    string `json:"author"`
+	Installed bool   `json:"installed"`
+	Version   string `json:"version,omitempty"`
+	OptIn     bool   `json:"opt_in"`
 }
 
 func detectMultiversa(registry map[string]stack.Engine) MultiversaState {

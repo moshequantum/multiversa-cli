@@ -11,11 +11,11 @@ import (
 
 // OSInfo describes the host operating system and chosen package manager.
 type OSInfo struct {
-	Kind    string // "darwin" | "linux" | "windows"
-	Arch    string // "amd64" | "arm64" | "386"
-	Distro  string // "macos" | "ubuntu" | "debian" | "fedora" | "arch" | "windows" | "unknown"
-	Version string // human-readable OS version
-	PkgMgr  string // "brew" | "apt" | "dnf" | "pacman" | "winget" | "scoop" | "" (none detected)
+	Kind    string `json:"kind"`    // "darwin" | "linux" | "windows"
+	Arch    string `json:"arch"`    // "amd64" | "arm64" | "386"
+	Distro  string `json:"distro"`  // "macos" | "ubuntu" | "debian" | "fedora" | "arch" | "windows" | "unknown"
+	Version string `json:"version"` // human-readable OS version
+	PkgMgr  string `json:"pkg_mgr"` // "brew" | "apt" | "dnf" | "pacman" | "winget" | "scoop" | "" (none detected)
 }
 
 func detectOS() OSInfo {

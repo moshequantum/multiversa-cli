@@ -354,7 +354,7 @@ func runLab(stdout io.Writer, reinstall bool) error {
 			fmt.Fprintln(stdout, theme.Dim.Render("hasta la próxima — \"la IA propone, tú decides\"."))
 			return nil
 		case outcomeLaunchDetect:
-			if err := runDetect(stdout); err != nil {
+			if err := runDetect(stdout, false); err != nil {
 				return err
 			}
 		case outcomeLaunchStack:
