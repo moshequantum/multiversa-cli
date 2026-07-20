@@ -13,7 +13,7 @@ import (
 )
 
 // plannedJSON is the payload emitted by add/connect/backend under --json
-// while their real implementations land in v0.5.0. Agents should branch
+// while their real implementations land in v0.6.0. Agents should branch
 // on status: "planned" means the command validated but executed nothing.
 type plannedJSON struct {
 	Kind           string   `json:"kind"` // "engine" | "agent" | "backend"
@@ -26,14 +26,14 @@ type plannedJSON struct {
 
 // newAddCmd registers `multiversa add <engine>`.
 // v0.4.x: validates the engine name against the registry and prints
-// a planned-feature notice. Full single-engine install ships in v0.5.0.
+// a planned-feature notice. Full single-engine install ships in v0.6.0.
 func newAddCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "add <engine>",
-		Short: "Add a single engine to the stack (v0.5.0).",
+		Short: "Add a single engine to the stack (v0.6.0).",
 		Long: "Add a single engine to your Multiversa stack without re-running the\n" +
-			"full init wizard. Planned for v0.5.0.\n\n" +
+			"full init wizard. Planned for v0.6.0.\n\n" +
 			"Available engines: " + engineList(),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -54,13 +54,13 @@ func newAddCmd() *cobra.Command {
 			}
 			if jsonOut {
 				return agentout.Emit(os.Stdout, "add", plannedJSON{
-					Kind: "engine", Target: engine, Status: "planned", PlannedVersion: "v0.5.0",
+					Kind: "engine", Target: engine, Status: "planned", PlannedVersion: "v0.6.0",
 					Available:  engineIDs(),
 					Workaround: "multiversa lab → Capa Técnica → Stack base",
 				})
 			}
 			fmt.Println(theme.Accent.Render("multiversa add · " + engine))
-			fmt.Println(theme.Dim.Render("Instalación individual planificada para v0.5.0."))
+			fmt.Println(theme.Dim.Render("Instalación individual planificada para v0.6.0."))
 			fmt.Println(theme.Body.Render("Por ahora, usa `multiversa lab` → Capa Técnica → Stack base."))
 			return nil
 		},
@@ -71,15 +71,15 @@ func newAddCmd() *cobra.Command {
 
 // newConnectCmd registers `multiversa connect <agent>`.
 // v0.4.x: validates the agent name and prints a planned-feature notice.
-// Full agent wiring (CLAUDE.md / .cursorrules / mcp config) ships in v0.5.0.
+// Full agent wiring (CLAUDE.md / .cursorrules / mcp config) ships in v0.6.0.
 func newConnectCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "connect <agent>",
-		Short: "Wire an AI agent connector (v0.5.0).",
+		Short: "Wire an AI agent connector (v0.6.0).",
 		Long: "Configure the selected AI agent to work with the installed Multiversa\n" +
 			"stack — writing CLAUDE.md, .cursorrules, MCP config, or agent-specific\n" +
-			"settings as needed. Planned for v0.5.0.\n\n" +
+			"settings as needed. Planned for v0.6.0.\n\n" +
 			"Supported agents: " + agentList(),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -100,13 +100,13 @@ func newConnectCmd() *cobra.Command {
 			}
 			if jsonOut {
 				return agentout.Emit(os.Stdout, "connect", plannedJSON{
-					Kind: "agent", Target: agent, Status: "planned", PlannedVersion: "v0.5.0",
+					Kind: "agent", Target: agent, Status: "planned", PlannedVersion: "v0.6.0",
 					Available:  agentIDs(),
 					Workaround: "multiversa init configura el agente de tu elección",
 				})
 			}
 			fmt.Println(theme.Accent.Render("multiversa connect · " + agent))
-			fmt.Println(theme.Dim.Render("Cableado de agente planificado para v0.5.0."))
+			fmt.Println(theme.Dim.Render("Cableado de agente planificado para v0.6.0."))
 			fmt.Println(theme.Body.Render("Por ahora, el wizard `multiversa init` configura el agente de tu elección."))
 			return nil
 		},
@@ -117,15 +117,15 @@ func newConnectCmd() *cobra.Command {
 
 // newBackendCmd registers `multiversa backend <name>`.
 // v0.4.x: validates the backend name and prints a planned-feature notice.
-// Standalone backend configuration ships in v0.5.0.
+// Standalone backend configuration ships in v0.6.0.
 func newBackendCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "backend <name>",
-		Short: "Configure an optional remote backend (v0.5.0).",
+		Short: "Configure an optional remote backend (v0.6.0).",
 		Long: "Configure the remote backend for Multiversa's persistent memory and\n" +
 			"knowledge graph (Engram + Graphify). Local SQLite is the default and\n" +
-			"requires no configuration. Planned for v0.5.0.\n\n" +
+			"requires no configuration. Planned for v0.6.0.\n\n" +
 			"Available backends: local (default) · supabase · firebase · insforge",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -158,13 +158,13 @@ func newBackendCmd() *cobra.Command {
 			}
 			if jsonOut {
 				return agentout.Emit(os.Stdout, "backend", plannedJSON{
-					Kind: "backend", Target: name, Status: "planned", PlannedVersion: "v0.5.0",
+					Kind: "backend", Target: name, Status: "planned", PlannedVersion: "v0.6.0",
 					Available:  backendIDs(),
 					Workaround: "configura el backend durante multiversa init",
 				})
 			}
 			fmt.Println(theme.Accent.Render("multiversa backend · " + name))
-			fmt.Println(theme.Dim.Render("Configuración de backend remoto planificada para v0.5.0."))
+			fmt.Println(theme.Dim.Render("Configuración de backend remoto planificada para v0.6.0."))
 			fmt.Println(theme.Body.Render("Por ahora, configura el backend durante `multiversa init`."))
 			return nil
 		},

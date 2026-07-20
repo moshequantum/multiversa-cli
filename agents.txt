@@ -89,8 +89,8 @@ Disallow: modifying LICENSE, CREDITS.md attribution without explicit maintainer 
 #   multiversa version --json     → schema multiversa.version/v1
 #   multiversa manifest --json    → schema multiversa.manifest/v1  (--path <file> optional)
 #   multiversa credits --json     → schema multiversa.credits/v1
-#   multiversa add <e> --json     → schema multiversa.add/v1      (validates; status:"planned" until v0.5.0)
-#   multiversa connect <a> --json → schema multiversa.connect/v1  (validates; status:"planned" until v0.5.0)
+#   multiversa add <e> --json     → schema multiversa.add/v1      (validates; status:"planned" until v0.6.0)
+#   multiversa connect <a> --json → schema multiversa.connect/v1  (validates; status:"planned" until v0.6.0)
 #   multiversa backend <b> --json → schema multiversa.backend/v1  (local reports status:"active")
 #   multiversa updates --json     → schema multiversa.updates/v1  (release watcher; reports, never updates)
 #   multiversa updates cron --json→ schema multiversa.updates-cron/v1 (status; --apply/--remove mutate
@@ -108,7 +108,7 @@ Disallow: modifying LICENSE, CREDITS.md attribution without explicit maintainer 
 #   - --json output is exhaustive; agents must not scrape the human TUI output.
 #
 # Mutating commands (init, lab, stack install) remain human-gated: there is
-# no --yes bypass today. When headless mutation ships (v0.5.0), it will
+# no --yes bypass today. When headless mutation ships (v0.6.0), it will
 # require an explicit manifest + confirmation flag, holding the ethic:
 # la IA propone, el humano decide.
 
