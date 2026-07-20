@@ -20,6 +20,7 @@ import (
 	"github.com/moshequantum/multiversa-cli/internal/credits"
 	"github.com/moshequantum/multiversa-cli/internal/detect"
 	"github.com/moshequantum/multiversa-cli/internal/manifest"
+	"github.com/moshequantum/multiversa-cli/internal/tenant"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 	"github.com/moshequantum/multiversa-cli/internal/upstream"
 	"github.com/moshequantum/multiversa-cli/internal/version"
@@ -137,5 +138,46 @@ func runMCPServer(ctx context.Context) error {
 		}, nil
 	})
 
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "tenant_list",
+		Description: "Lista los perfiles de tenant (~/.multiversa/tenants): slug, tipo, dueño, cuál está " +
+			"activo y si su vault mantiene permisos 0700. El contenido del vault nunca se lee ni expone.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, tenantListOut, error) {
+		infos, err := tenant.List()
+		if err != nil {
+			return nil, tenantListOut{}, err
+		}
+		return nil, tenantListOut{Active: tenant.Active(), Tenants: infos}, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "tenant_show",
+		Description: "Muestra el ADN completo de un tenant por slug: identidad, pilares, scoring, grafo, " +
+			"sync y deploy. Los secretos del vault jamás se serializan.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in tenantShowArgs) (*mcp.CallToolResult, tenantShowOut, error) {
+		m, path, err := tenant.Load(in.Slug)
+		if err != nil {
+			return nil, tenantShowOut{}, err
+		}
+		return nil, tenantShowOut{Path: path, Manifest: m}, nil
+	})
+
 	return server.Run(ctx, &mcp.StdioTransport{})
+}
+
+// tenantListOut mirrors the multiversa.tenant/v1 list payload.
+type tenantListOut struct {
+	Active  string        `json:"active,omitempty"`
+	Tenants []tenant.Info `json:"tenants"`
+}
+
+// tenantShowArgs selects the tenant to inspect.
+type tenantShowArgs struct {
+	Slug string `json:"slug" jsonschema:"slug kebab-case del tenant, ver tenant_list"`
+}
+
+// tenantShowOut mirrors the multiversa.tenant/v1 show payload.
+type tenantShowOut struct {
+	Path     string             `json:"path"`
+	Manifest *manifest.Manifest `json:"manifest"`
 }

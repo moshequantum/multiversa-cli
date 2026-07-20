@@ -8,7 +8,7 @@ An agentic field conductor. It does not invent the engines — it wakes them, co
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-BDEB34.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/go-1.22+-0A0A0F.svg)](https://go.dev)
-[![v0.6.0](https://img.shields.io/badge/version-v0.6.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
+[![v0.7.0](https://img.shields.io/badge/version-v0.7.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
 [![Stack](https://img.shields.io/badge/stack-orchestrated-5C5C64.svg)](CREDITS.md)
 
 ---
@@ -127,8 +127,13 @@ multiversa add engram         # añadir un motor específico
 multiversa connect cursor     # cablear un agente de IA
 multiversa backend insforge   # configurar backend (opcional)
 
+# Tenants — perfiles replicables (ElevatOS · PulseOS · el tuyo)
+multiversa tenant new pulseos --kind personal-brand   # ADN + vault 0700 + grafo + memoria
+multiversa tenant use pulseos                         # cambio de contexto aislado
+multiversa tenant list · show <slug>                  # inspección (secretos jamás)
+
 # Superficie para agentes de IA
-multiversa mcp serve          # servidor MCP por stdio (detect · manifest · updates · …)
+multiversa mcp serve          # servidor MCP por stdio (detect · manifest · tenants · updates · …)
 
 # Información
 multiversa credits            # atribución completa upstream

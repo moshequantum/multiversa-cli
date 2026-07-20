@@ -28,3 +28,54 @@ provider = "local"               # local | supabase | firebase | insforge
 
 [credits]
 auto_print = true                # print attribution after every install
+
+# ───────────────────────────────────────────────────────────────
+# TENANT DNA (schema 0.2) — the replicable unit of every install.
+# One manifest = one tenant = one isolated OS (ElevatOS, PulseOS, …).
+# Scaffold with: multiversa tenant new <slug> --kind personal-brand
+# ───────────────────────────────────────────────────────────────
+
+[tenant]
+slug  = "pulseos-cintia"                 # dir under ~/.multiversa/tenants/
+name  = "PulseOS — Cintia Larizatti"
+kind  = "personal-brand"                 # personal-os | personal-brand | agency | team
+owner = "cintia@example.com"             # the human who decides
+
+[identity]                               # brand DNA — the graph and every skill anchor here
+brand    = "Cintia Larizatti"
+voice    = "cálida, directa, sin tecnicismos"
+language = "es"
+avatar   = "calma"
+taboos   = ["promesas de resultados garantizados"]
+
+[[pillars]]                              # strategic pillars — the scoring engine classifies against these
+id     = "contenido"
+name   = "Contenido y comunidad"
+metric = "engagement semanal"
+weight = 1.0
+
+[scoring]                                # weights for the 5 dimensions + anti-negative-loop params
+alignment            = 1.0
+urgency              = 0.8
+impact               = 1.0
+effort               = 0.6
+confidence           = 0.7
+exploration_quota    = 0.10
+decay_half_life_days = 45
+
+[vault]                                  # secrets dir (0700). Contents are NEVER read, serialized, or synced.
+path = "vault"
+
+[graph]                                  # knowledge graph, anchored to the identity section
+engine = "graphify"
+anchor = "identity"
+ingest = ["docs", "decisions"]
+
+[sync]                                   # backup/sync of memory+graph+manifest — never the vault
+providers = ["insforge", "gdrive"]       # order = priority; insforge free tier = "nano"
+mode      = "backup"                     # backup | sync
+plan      = "nano"
+auto      = false                        # every sync is proposed, human-approved
+
+[deploy]                                 # where this tenant's software ships — the per-client difference
+targets = ["vercel", "insforge"]
