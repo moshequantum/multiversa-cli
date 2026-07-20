@@ -44,6 +44,7 @@ func main() {
 		newCreditsCmd(),
 		newVersionCmd(),
 		newManifestCmd(),
+		newTenantCmd(),
 		newMCPCmd(),
 	)
 

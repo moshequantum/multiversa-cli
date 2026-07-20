@@ -93,6 +93,8 @@ Disallow: modifying LICENSE, CREDITS.md attribution without explicit maintainer 
 #   multiversa connect <a> --json → schema multiversa.connect/v1  (validates; status:"planned" until implemented)
 #   multiversa backend <b> --json → schema multiversa.backend/v1  (local reports status:"active")
 #   multiversa updates --json     → schema multiversa.updates/v1  (release watcher; reports, never updates)
+#   multiversa tenant new/list/show/use --json → schema multiversa.tenant/v1 (perfiles aislados;
+#                                    vault 0700 cuyo contenido JAMÁS se lee ni serializa)
 #   multiversa updates cron --json→ schema multiversa.updates-cron/v1 (status; --apply/--remove mutate
 #                                    only the crontab line marked "# multiversa-updates")
 #
