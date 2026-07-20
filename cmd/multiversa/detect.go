@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
+	"github.com/moshequantum/multiversa-cli/internal/agentout"
 	"github.com/moshequantum/multiversa-cli/internal/detect"
 	"github.com/moshequantum/multiversa-cli/internal/profile"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
@@ -38,10 +39,28 @@ const detectLong = "Ejecuta un escaneo de solo lectura del entorno local. Report
 	"descarga ni modifica nada. Usa `multiversa init` después para\n" +
 	"actuar sobre los hallazgos."
 
+// detectJSON is the payload shape of `multiversa detect --json`
+// (schema multiversa.detect/v1). Report and Summary evolve additively.
+type detectJSON struct {
+	Report  detect.Report  `json:"report"`
+	Summary detect.Summary `json:"summary"`
+}
+
+// emitDetectJSON writes the machine-readable report envelope. Split out
+// from runDetect so tests can feed a fabricated report.
+func emitDetectJSON(w io.Writer, report detect.Report) error {
+	return agentout.Emit(w, "detect", detectJSON{Report: report, Summary: report.Summarize()})
+}
+
 // runDetect is the shared entry point for both `detect` and `doctor`.
-// It picks the TUI vs. plain branch based on whether stdout is a TTY.
-func runDetect(stdout io.Writer) error {
+// It picks the JSON vs. TUI vs. plain branch: --json always wins, then
+// TTY-ness decides between Bubble Tea and the plain renderer.
+func runDetect(stdout io.Writer, jsonOut bool) error {
 	report := detect.Run()
+
+	if jsonOut {
+		return emitDetectJSON(stdout, report)
+	}
 
 	if !isTTY(stdout) {
 		// CI / pipe / redirect: keep v0.3.0 plain output byte-for-byte.
@@ -304,26 +323,32 @@ func mvHint(r detect.Report) string {
 
 // newDetectCmd is the canonical environment scanner. Read-only.
 func newDetectCmd() *cobra.Command {
-	return &cobra.Command{
+	var jsonOut bool
+	cmd := &cobra.Command{
 		Use:     "detect",
 		Aliases: []string{"scan"},
 		Short:   "Escanea el host: SO, gestor de paquetes, dev stack, estado Multiversa.",
 		Long:    detectLong,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDetect(os.Stdout)
+			return runDetect(os.Stdout, jsonOut)
 		},
 	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit the report as a machine-readable JSON envelope (schema multiversa.detect/v1).")
+	return cmd
 }
 
 // newDoctorCmd keeps the npm/brew-style `doctor` alias alive. It
 // delegates to runDetect so the report shape stays single-source.
 func newDoctorCmd() *cobra.Command {
-	return &cobra.Command{
+	var jsonOut bool
+	cmd := &cobra.Command{
 		Use:    "doctor",
 		Short:  "Alias de `multiversa detect`.",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDetect(os.Stdout)
+			return runDetect(os.Stdout, jsonOut)
 		},
 	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit the report as a machine-readable JSON envelope (schema multiversa.detect/v1).")
+	return cmd
 }

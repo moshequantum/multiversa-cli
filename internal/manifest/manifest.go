@@ -12,31 +12,31 @@ import (
 const DefaultPath = "multiversa.toml"
 
 type Manifest struct {
-	Multiversa Meta              `toml:"multiversa"`
-	Stack      map[string]string `toml:"stack"`
-	Agents     Agents            `toml:"agents"`
-	Backend    Backend           `toml:"backend"`
-	Credits    Credits           `toml:"credits"`
+	Multiversa Meta              `toml:"multiversa" json:"multiversa"`
+	Stack      map[string]string `toml:"stack" json:"stack"`
+	Agents     Agents            `toml:"agents" json:"agents"`
+	Backend    Backend           `toml:"backend" json:"backend"`
+	Credits    Credits           `toml:"credits" json:"credits"`
 }
 
 type Meta struct {
-	Profile string `toml:"profile"`
-	Ethic   string `toml:"ethic"`
-	Version string `toml:"version"`
+	Profile string `toml:"profile" json:"profile"`
+	Ethic   string `toml:"ethic" json:"ethic"`
+	Version string `toml:"version" json:"version"`
 }
 
 type Agents struct {
-	Enabled []string `toml:"enabled"`
+	Enabled []string `toml:"enabled" json:"enabled"`
 }
 
 type Backend struct {
-	Provider string `toml:"provider"`
-	URL      string `toml:"url,omitempty"`
-	AnonKey  string `toml:"anon_key,omitempty"`
+	Provider string `toml:"provider" json:"provider"`
+	URL      string `toml:"url,omitempty" json:"url,omitempty"`
+	AnonKey  string `toml:"anon_key,omitempty" json:"-"`
 }
 
 type Credits struct {
-	AutoPrint bool `toml:"auto_print"`
+	AutoPrint bool `toml:"auto_print" json:"auto_print"`
 }
 
 func Default() *Manifest {

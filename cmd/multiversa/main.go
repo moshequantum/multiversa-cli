@@ -1,12 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/moshequantum/multiversa-cli/internal/agentout"
 	"github.com/moshequantum/multiversa-cli/internal/credits"
+	"github.com/moshequantum/multiversa-cli/internal/manifest"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 	"github.com/moshequantum/multiversa-cli/internal/version"
 	"github.com/moshequantum/multiversa-cli/internal/wizard"
@@ -36,6 +40,7 @@ func main() {
 		newConnectCmd(),
 		newBackendCmd(),
 		newDoctorCmd(),
+		newUpdatesCmd(),
 		newCreditsCmd(),
 		newVersionCmd(),
 		newManifestCmd(),
@@ -64,33 +69,96 @@ func newInitCmd() *cobra.Command {
 }
 
 func newCreditsCmd() *cobra.Command {
-	return &cobra.Command{
+	var jsonOut bool
+	cmd := &cobra.Command{
 		Use:   "credits",
 		Short: "Print attribution for the orchestrated stack.",
-		Run: func(cmd *cobra.Command, args []string) {
-			credits.Print(os.Stdout)
-		},
-	}
-}
-
-func newVersionCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the CLI version.",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("multiversa", version.Full())
-		},
-	}
-}
-
-func newManifestCmd() *cobra.Command {
-	return &cobra.Command{
-		Use:   "manifest",
-		Short: "Print or edit the multiversa.toml manifest.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println(theme.Accent.Render("multiversa manifest"))
-			fmt.Println(theme.Dim.Render("Schema: multiversa.toml.example  ·  Editing UI: v0.2."))
+			if jsonOut {
+				return agentout.Emit(os.Stdout, "credits", struct {
+					Sources []credits.Source `json:"sources"`
+				}{credits.Sources})
+			}
+			credits.Print(os.Stdout)
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit upstream attribution as a JSON envelope (schema multiversa.credits/v1).")
+	return cmd
+}
+
+func newVersionCmd() *cobra.Command {
+	var jsonOut bool
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the CLI version.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if jsonOut {
+				return agentout.Emit(os.Stdout, "version", struct {
+					Version string `json:"version"`
+					Commit  string `json:"commit"`
+					Date    string `json:"date"`
+				}{version.Version, version.Commit, version.Date})
+			}
+			fmt.Println("multiversa", version.Full())
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit version info as a JSON envelope (schema multiversa.version/v1).")
+	return cmd
+}
+
+// manifestJSON is the payload of `multiversa manifest --json`
+// (schema multiversa.manifest/v1). Secrets (anon_key) never serialize.
+type manifestJSON struct {
+	Path     string             `json:"path"`
+	Exists   bool               `json:"exists"`
+	Manifest *manifest.Manifest `json:"manifest"`
+}
+
+func newManifestCmd() *cobra.Command {
+	var jsonOut bool
+	var path string
+	cmd := &cobra.Command{
+		Use:   "manifest",
+		Short: "Print the parsed multiversa.toml manifest.",
+		Long: "Print the multiversa.toml manifest, parsed and validated. If the file\n" +
+			"does not exist, the default manifest schema is shown instead so agents\n" +
+			"and humans can see what `multiversa init` would generate.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			m, err := manifest.Load(path)
+			exists := err == nil
+			if err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					// Malformed TOML or unreadable file — a real error either way.
+					if jsonOut {
+						_ = agentout.EmitError(os.Stdout, "manifest", "manifest_invalid", err.Error(),
+							"Fix the TOML syntax in "+path+" or regenerate it with `multiversa init`.")
+						os.Exit(1)
+					}
+					return err
+				}
+				m = manifest.Default()
+			}
+			if jsonOut {
+				return agentout.Emit(os.Stdout, "manifest", manifestJSON{Path: path, Exists: exists, Manifest: m})
+			}
+			fmt.Println(theme.Accent.Render("multiversa manifest") + theme.Dim.Render(" · "+path))
+			if !exists {
+				fmt.Println(theme.Warn.Render("⚠ " + path + " no existe — mostrando el manifiesto por defecto."))
+			}
+			fmt.Printf("  profile   %s\n  ethic     %s\n  version   %s\n  backend   %s\n",
+				m.Multiversa.Profile, m.Multiversa.Ethic, m.Multiversa.Version, m.Backend.Provider)
+			if len(m.Agents.Enabled) > 0 {
+				fmt.Printf("  agents    %s\n", strings.Join(m.Agents.Enabled, " · "))
+			}
+			for id, src := range m.Stack {
+				fmt.Printf("  engine    %-10s %s\n", id, src)
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit the manifest as a JSON envelope (schema multiversa.manifest/v1).")
+	cmd.Flags().StringVar(&path, "path", manifest.DefaultPath, "Path to the multiversa.toml manifest.")
+	return cmd
 }

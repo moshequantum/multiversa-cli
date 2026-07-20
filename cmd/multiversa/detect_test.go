@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -22,7 +23,7 @@ import (
 // header that scripts and the /lab-setup skill scrape.
 func TestDetectNonTTYFallback(t *testing.T) {
 	var buf bytes.Buffer
-	if err := runDetect(&buf); err != nil {
+	if err := runDetect(&buf, false); err != nil {
 		t.Fatalf("runDetect returned error: %v", err)
 	}
 	out := buf.String()
@@ -32,6 +33,60 @@ func TestDetectNonTTYFallback(t *testing.T) {
 	// Sanity: the plain renderer always prints a Ready: summary line.
 	if !strings.Contains(out, "Ready:") {
 		t.Fatalf("expected Ready summary in non-TTY fallback, got:\n%s", out)
+	}
+}
+
+// TestDetectJSONEnvelope locks in the machine contract of
+// `multiversa detect --json`: one envelope, schema multiversa.detect/v1,
+// ok=true, and a data payload carrying report + summary whose totals
+// agree with the report's own counters.
+func TestDetectJSONEnvelope(t *testing.T) {
+	report := detect.Report{
+		OS: detect.OSInfo{Kind: "linux", Arch: "amd64", Distro: "debian", PkgMgr: "apt"},
+		Tools: []detect.Tool{
+			{Name: "go", Installed: true, Version: "go1.26", Category: "language"},
+			{Name: "node", Installed: false, Category: "language"},
+			{Name: "npm", Installed: true, Advisory: true, Warn: true, Category: "pkgmgr"},
+		},
+		Multiversa: detect.MultiversaState{
+			Engines: []detect.EngineState{
+				{ID: "engram", Name: "Engram", Author: "Gentleman-Programming", Installed: true},
+				{ID: "graphify", Name: "Graphify", Author: "Safi Shamsi", Installed: false},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	if err := emitDetectJSON(&buf, report); err != nil {
+		t.Fatalf("emitDetectJSON returned error: %v", err)
+	}
+
+	var env struct {
+		Schema  string `json:"schema"`
+		Command string `json:"command"`
+		OK      bool   `json:"ok"`
+		Data    struct {
+			Report  detect.Report  `json:"report"`
+			Summary detect.Summary `json:"summary"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(buf.Bytes(), &env); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", err, buf.String())
+	}
+	if env.Schema != "multiversa.detect/v1" {
+		t.Fatalf("expected schema multiversa.detect/v1, got %q", env.Schema)
+	}
+	if env.Command != "detect" || !env.OK {
+		t.Fatalf("unexpected envelope command/ok: %q / %v", env.Command, env.OK)
+	}
+	if env.Data.Summary.ToolsReady != 1 || env.Data.Summary.ToolsTotal != 2 {
+		t.Fatalf("summary tools mismatch: %+v", env.Data.Summary)
+	}
+	if env.Data.Summary.EnginesReady != 1 || env.Data.Summary.EnginesTotal != 2 {
+		t.Fatalf("summary engines mismatch: %+v", env.Data.Summary)
+	}
+	if len(env.Data.Report.Tools) != 3 || env.Data.Report.OS.PkgMgr != "apt" {
+		t.Fatalf("report did not round-trip: %+v", env.Data.Report)
 	}
 }
 
