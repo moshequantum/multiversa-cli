@@ -40,6 +40,7 @@ func main() {
 		newConnectCmd(),
 		newBackendCmd(),
 		newDoctorCmd(),
+		newUpdatesCmd(),
 		newCreditsCmd(),
 		newVersionCmd(),
 		newManifestCmd(),
