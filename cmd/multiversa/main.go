@@ -44,6 +44,7 @@ func main() {
 		newCreditsCmd(),
 		newVersionCmd(),
 		newManifestCmd(),
+		newMCPCmd(),
 	)
 
 	if err := root.Execute(); err != nil {
