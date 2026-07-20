@@ -8,7 +8,7 @@ An agentic field conductor. It does not invent the engines — it wakes them, co
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-BDEB34.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/go-1.22+-0A0A0F.svg)](https://go.dev)
-[![v0.5.0](https://img.shields.io/badge/version-v0.5.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
+[![v0.6.0](https://img.shields.io/badge/version-v0.6.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
 [![Stack](https://img.shields.io/badge/stack-orchestrated-5C5C64.svg)](CREDITS.md)
 
 ---
@@ -96,17 +96,17 @@ Si te resulta útil, **dales star a sus repos primero**. Sin ellos, esto no exis
 go install github.com/moshequantum/multiversa-cli/cmd/multiversa@latest
 ```
 
-Los siguientes canales están planificados para v0.6.0 y aún no están activos:
+Los siguientes canales están planificados y aún no están activos:
 
 ```bash
-# [planned v0.6.0] macOS — Homebrew tap
+# [planned] macOS — Homebrew tap
 brew tap moshequantum/multiversa
 brew install multiversa
 
-# [planned v0.6.0] Linux / macOS / WSL — curl installer
+# [planned] Linux / macOS / WSL — curl installer
 curl -sSL https://raw.githubusercontent.com/moshequantum/multiversa-cli/main/installers/shell-curl/install.sh | sh
 
-# [planned v0.6.0] Windows — Scoop bucket
+# [planned] Windows — Scoop bucket
 scoop bucket add multiversa https://github.com/moshequantum/scoop-multiversa
 scoop install multiversa
 ```
@@ -126,6 +126,9 @@ multiversa stack              # instalar toolchain base (Go · Rust · Node · p
 multiversa add engram         # añadir un motor específico
 multiversa connect cursor     # cablear un agente de IA
 multiversa backend insforge   # configurar backend (opcional)
+
+# Superficie para agentes de IA
+multiversa mcp serve          # servidor MCP por stdio (detect · manifest · updates · …)
 
 # Información
 multiversa credits            # atribución completa upstream
