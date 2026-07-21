@@ -81,10 +81,29 @@ func Use(slug string) error {
 	return os.WriteFile(p, []byte(slug+"\n"), 0o644)
 }
 
+// slugProblem explains why a slug was rejected, in the user's terms. The
+// single "usa kebab-case" message used to cover every case, so a perfectly
+// kebab-case slug that was merely too long sent the user off to fix
+// characters that were already correct.
+func slugProblem(slug string) string {
+	shown := slug
+	if len(shown) > 40 {
+		shown = shown[:40] + "…"
+	}
+	switch {
+	case len(slug) < 2:
+		return fmt.Sprintf("slug inválido %q — necesita al menos 2 caracteres", shown)
+	case len(slug) > 63:
+		return fmt.Sprintf("slug inválido %q — tiene %d caracteres y el máximo son 63", shown, len(slug))
+	default:
+		return fmt.Sprintf("slug inválido %q — usa kebab-case: minúsculas, números y guiones, empezando por letra o número", shown)
+	}
+}
+
 // Dir returns the directory for a slug after validating it.
 func Dir(slug string) (string, error) {
 	if !slugRe.MatchString(slug) {
-		return "", fmt.Errorf("slug inválido %q — usa kebab-case: letras minúsculas, números y guiones", slug)
+		return "", fmt.Errorf("%s", slugProblem(slug))
 	}
 	root, err := Root()
 	if err != nil {
@@ -103,7 +122,11 @@ func Dir(slug string) (string, error) {
 //	  vault/            0700 — secrets live here, never serialized
 //	  graph/            knowledge graph home (anchored to identity)
 //	  memory/           Engram home for this tenant
-func New(slug, name, kind string) (*manifest.Manifest, string, error) {
+// Pillars given here replace the template's defaults; passing none keeps them.
+// It is variadic so every existing three-argument call still compiles — and so
+// that the Tauri installer can delegate tenant creation here instead of writing
+// its own multiversa.toml, which is how the two implementations drifted apart.
+func New(slug, name, kind string, pillars ...manifest.Pillar) (*manifest.Manifest, string, error) {
 	dir, err := Dir(slug)
 	if err != nil {
 		return nil, "", err
@@ -117,6 +140,9 @@ func New(slug, name, kind string) (*manifest.Manifest, string, error) {
 	m.Tenant.Name = name
 	if m.Tenant.Name == "" {
 		m.Tenant.Name = slug
+	}
+	if len(pillars) > 0 {
+		m.Pillars = normalizePillars(pillars)
 	}
 
 	for _, sub := range []string{"graph", "memory"} {
@@ -138,6 +164,68 @@ func New(slug, name, kind string) (*manifest.Manifest, string, error) {
 		return nil, "", err
 	}
 	return m, dir, nil
+}
+
+// normalizePillars fills in what the caller left blank: an id derived from the
+// name (the manifest keys pillars by id, so an empty one would collide) and the
+// default weight of 1.0. Pillars without a name are dropped — an unnamed pillar
+// cannot be scored against anything.
+func normalizePillars(in []manifest.Pillar) []manifest.Pillar {
+	out := make([]manifest.Pillar, 0, len(in))
+	seen := map[string]bool{}
+	for _, p := range in {
+		p.Name = strings.TrimSpace(p.Name)
+		if p.Name == "" {
+			continue
+		}
+		if p.ID == "" {
+			p.ID = slugifyPillar(p.Name)
+		}
+		if seen[p.ID] {
+			continue
+		}
+		seen[p.ID] = true
+		if p.Weight == 0 {
+			p.Weight = 1.0
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+// asciiFold maps the accented Latin characters Spanish and Portuguese actually
+// use down to ASCII. Without it "Operación" would slug to "operaci-n" — the
+// accent silently becoming a word break — and this product is Spanish-first.
+var asciiFold = map[rune]rune{
+	'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a', 'ã': 'a', 'å': 'a',
+	'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
+	'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i',
+	'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o', 'õ': 'o',
+	'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
+	'ñ': 'n', 'ç': 'c', 'ý': 'y', 'ÿ': 'y',
+}
+
+// slugifyPillar reduces a display name to a manifest-safe id: accents folded to
+// ASCII, lowercase, remaining non-alphanumerics collapsed to single hyphens.
+func slugifyPillar(name string) string {
+	var b strings.Builder
+	lastHyphen := true // leading hyphens are suppressed
+	for _, r := range strings.ToLower(name) {
+		if folded, ok := asciiFold[r]; ok {
+			r = folded
+		}
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastHyphen = false
+		default:
+			if !lastHyphen {
+				b.WriteByte('-')
+				lastHyphen = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "-")
 }
 
 // List returns every tenant profile found under Root.
