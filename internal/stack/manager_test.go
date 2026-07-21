@@ -22,6 +22,71 @@ func onlyOnPath(t *testing.T, tools ...string) {
 	t.Setenv("PATH", dir)
 }
 
+// fakeBinOnPath puts one executable with scripted output on an otherwise
+// empty PATH, so Status() probes can be tested without the real engine.
+func fakeBinOnPath(t *testing.T, name, script string) {
+	t.Helper()
+	dir := t.TempDir()
+	p := filepath.Join(dir, name)
+	if err := os.WriteFile(p, []byte("#!/bin/sh\n"+script+"\n"), 0o755); err != nil {
+		t.Fatalf("writing fake %q: %v", name, err)
+	}
+	t.Setenv("PATH", dir)
+}
+
+// gentle-ai ships under two different binary names depending on how it was
+// installed: Homebrew calls it `gentle`, `go install` calls it `gentle-ai`
+// after its cmd/ directory. Probing only one reported a correctly installed
+// engine as missing, which is what made the wizard's review step lie.
+func TestGentleAIStatusFindsBothBinaryNames(t *testing.T) {
+	for _, bin := range []string{"gentle-ai", "gentle"} {
+		t.Run(bin, func(t *testing.T) {
+			fakeBinOnPath(t, bin, `echo "gentle-ai 1.49.0"`)
+
+			st, err := (GentleAI{}).Status()
+			if err != nil {
+				t.Fatalf("Status: %v", err)
+			}
+			if !st.Installed {
+				t.Fatalf("installed as %q but reported missing", bin)
+			}
+			if st.Version != "gentle-ai 1.49.0" {
+				t.Errorf("version = %q", st.Version)
+			}
+		})
+	}
+}
+
+// The gentle-pi npm package declares no `bin` at all — it is a development
+// harness, not a CLI — so a PATH probe can never find it. Detection has to
+// ask pnpm, which owns the install.
+func TestGentlePiStatusAsksPnpmNotThePath(t *testing.T) {
+	fakeBinOnPath(t, "pnpm", `echo "dependencies:"; echo "└── gentle-pi@1.1.0"`)
+
+	st, err := (GentlePi{}).Status()
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+	if !st.Installed {
+		t.Fatal("gentle-pi installed via pnpm but reported missing")
+	}
+	if st.Version != "1.1.0" {
+		t.Errorf("version = %q, want 1.1.0", st.Version)
+	}
+}
+
+func TestGentlePiStatusFalseWhenAbsent(t *testing.T) {
+	fakeBinOnPath(t, "pnpm", `echo "dependencies:"; echo "└── node@24.18.0"`)
+
+	st, err := (GentlePi{}).Status()
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+	if st.Installed {
+		t.Error("reported installed when pnpm does not list it")
+	}
+}
+
 func TestGoModuleVersion(t *testing.T) {
 	cases := map[string]string{
 		"":        "@latest",
@@ -98,6 +163,26 @@ func TestGoModulePathsMatchUpstreamCasing(t *testing.T) {
 		if got != want[eng.ID()] {
 			t.Errorf("%s: module path = %q, want %q", eng.ID(), got, want[eng.ID()])
 		}
+	}
+}
+
+// gentle-ai's Go route is knowingly limited: upstream tags v2.x while its
+// go.mod still declares the v1 module path, so `@latest` can only ever
+// resolve to v1.49.0 and a `/v2` path does not exist. The Note must say so,
+// otherwise the wizard silently installs a major version behind Homebrew.
+// If upstream ever fixes their go.mod, this test is the reminder to revisit.
+func TestGentleAIGoRouteWarnsAboutMajorVersionGap(t *testing.T) {
+	var note, path string
+	for _, s := range (GentleAI{}).Strategies("latest") {
+		if s.Prereq == "go" {
+			note, path = s.Note, s.Cmd[len(s.Cmd)-1]
+		}
+	}
+	if strings.Contains(path, "/v2") {
+		t.Error("upstream go.mod does not declare a /v2 module path — this install would fail")
+	}
+	if !strings.Contains(note, "v1.x") {
+		t.Errorf("the Note must warn the user they get v1.x, got %q", note)
 	}
 }
 

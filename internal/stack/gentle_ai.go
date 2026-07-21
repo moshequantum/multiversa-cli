@@ -26,20 +26,36 @@ func (g GentleAI) Strategies(version string) []Strategy {
 			Prereq: "go",
 			// Module path is lowercase upstream, unlike Engram's. Do not
 			// "normalise" this — `go install` is case-sensitive.
+			//
+			// CAVEAT: upstream tags v2.x but its go.mod still declares the
+			// v1 module path, breaking Go's major-version rule. So
+			// `@latest` resolves to v1.49.0 and `/v2` does not exist. This
+			// route therefore installs a major version behind Homebrew —
+			// which is why the Note says so out loud rather than letting
+			// the user believe they got the current release.
 			Cmd:  []string{"go", "install", "github.com/gentleman-programming/gentle-ai/cmd/gentle-ai" + goModuleVersion(version)},
-			Note: "compilado con el toolchain de Go (sin Homebrew)",
+			Note: "toolchain de Go — ⚠️ queda en v1.x: upstream publica v2 sin ruta /v2",
 		},
 	}
 }
 
 func (g GentleAI) Install(version string) error { return runInstall(g, version) }
 
+// Status probes both binary names: Homebrew installs `gentle`, while
+// `go install` names the binary after its cmd/ directory, `gentle-ai`.
+// Checking only one made a correctly installed engine report as missing.
 func (g GentleAI) Status() (Status, error) {
-	if !xexec.Check("gentle") {
-		return Status{Installed: false}, nil
+	for _, bin := range []string{"gentle-ai", "gentle"} {
+		if !xexec.Check(bin) {
+			continue
+		}
+		r := xexec.Run(bin, "--version")
+		if r.Err != nil {
+			return Status{Installed: true, Path: bin}, nil
+		}
+		return Status{Installed: true, Version: r.LastLine(), Path: bin}, nil
 	}
-	r := xexec.Run("gentle", "--version")
-	return Status{Installed: true, Version: r.LastLine()}, nil
+	return Status{Installed: false}, nil
 }
 
 func (g GentleAI) Uninstall() error { return ErrNotImplemented }
