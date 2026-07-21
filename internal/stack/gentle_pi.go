@@ -12,22 +12,22 @@ func (GentlePi) Author() string      { return "Gentleman-Programming" }
 func (GentlePi) Repo() string        { return "https://github.com/Gentleman-Programming/gentle-pi" }
 func (GentlePi) License() string     { return "MIT" }
 func (GentlePi) OptIn() bool         { return false }
-func (GentlePi) Prereq() string      { return "pnpm" }
 
-func (g GentlePi) Command(version string) []string {
-	// pnpm-only by Multiversa policy. npm is banned across the stack — see
-	// docs and project-rules-pnpm-only memory note.
+// Strategies: pnpm only. npm is banned across the Multiversa stack — see
+// docs and the project-rules-pnpm-only memory note.
+func (g GentlePi) Strategies(version string) []Strategy {
 	pkg := "gentle-pi"
 	if version != "" && version != "latest" {
 		pkg = "gentle-pi@" + version
 	}
-	return []string{"pnpm", "add", "-g", pkg}
+	return []Strategy{{
+		Prereq: "pnpm",
+		Cmd:    []string{"pnpm", "add", "-g", pkg},
+		Note:   "paquete global con pnpm (npm prohibido por política)",
+	}}
 }
 
-func (g GentlePi) Install(version string) error {
-	cmd := g.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
-}
+func (g GentlePi) Install(version string) error { return runInstall(g, version) }
 
 func (g GentlePi) Status() (Status, error) {
 	if !xexec.Check("gentle-pi") {

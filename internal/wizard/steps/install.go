@@ -105,24 +105,30 @@ func (i *Install) startEngine(idx int) tea.Cmd {
 		}
 	}
 
-	// Prereq check (e.g. `go`, `pipx`, `pnpm`, `docker` on PATH).
+	// Resolve an install route against this machine: the first strategy
+	// whose prerequisite is on PATH wins. An engine may offer several —
+	// Engram installs via Homebrew *or* the Go toolchain — so a missing
+	// brew is no longer fatal on Linux. Only when every route is blocked do
+	// we stop, and then we name all of them.
 	// Note: npm is banned across the Multiversa stack (pnpm-only policy).
-	if pre := eng.Prereq(); pre != "" && !xexec.Check(pre) {
+	strat, ok := stack.PickStrategy(eng, "latest")
+	if !ok {
 		i.statuses[id] = stPrereqMissing
+		opts := stack.Prereqs(eng, "latest")
 		return func() tea.Msg {
 			return installResultMsg{
 				id:     id,
 				status: stPrereqMissing,
 				result: xexec.Result{
-					Cmd: prereqMissingMsg(pre),
-					Err: fmt.Errorf("%q not found on PATH", pre),
+					Cmd: prereqMissingMsg(opts),
+					Err: &stack.PrereqError{Engine: id, Options: opts},
 				},
 			}
 		}
 	}
 
 	i.statuses[id] = stRunning
-	cmd := eng.Command("latest")
+	cmd := strat.Cmd
 	if len(cmd) == 0 {
 		i.statuses[id] = stError
 		return func() tea.Msg {
@@ -256,7 +262,12 @@ func (i *Install) renderRow(id string) string {
 		icon = i.spinner.View() + " "
 		eng, _ := stack.Resolve(id)
 		if eng != nil {
-			suffix = theme.Dim.Render("$ " + strings.Join(eng.Command("latest"), " "))
+			// Show the route actually taken, not the preferred one — on a
+			// machine without brew this is what tells the user Engram is
+			// being built with Go instead.
+			if s, ok := stack.PickStrategy(eng, "latest"); ok {
+				suffix = theme.Dim.Render("$ " + strings.Join(s.Cmd, " "))
+			}
 		}
 	case stDone:
 		icon = theme.Accent.Render("✓ ")
@@ -313,7 +324,24 @@ func (i *Install) renderSummary() string {
 	return theme.Divider + "\n" + strings.Join(parts, "   ")
 }
 
-func prereqMissingMsg(tool string) string {
+// prereqMissingMsg explains how to unblock an engine. An engine with several
+// install routes lists every one, so the user can pick the cheapest — on
+// Linux that is usually the Go toolchain rather than Homebrew.
+func prereqMissingMsg(tools []string) string {
+	switch len(tools) {
+	case 0:
+		return "no install route available"
+	case 1:
+		return prereqHint(tools[0])
+	}
+	hints := make([]string, 0, len(tools))
+	for _, t := range tools {
+		hints = append(hints, prereqHint(t))
+	}
+	return "cualquiera de estas: " + strings.Join(hints, " · o bien ")
+}
+
+func prereqHint(tool string) string {
 	switch tool {
 	case "brew":
 		return "install Homebrew — see https://brew.sh"

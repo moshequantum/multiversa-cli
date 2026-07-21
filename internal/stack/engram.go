@@ -12,16 +12,28 @@ func (Engram) Author() string      { return "Gentleman-Programming" }
 func (Engram) Repo() string        { return "https://github.com/Gentleman-Programming/engram" }
 func (Engram) License() string     { return "MIT" }
 func (Engram) OptIn() bool         { return false }
-func (Engram) Prereq() string      { return "brew" }
 
-func (e Engram) Command(version string) []string {
-	return []string{"brew", "install", "gentleman-programming/tap/engram"}
+// Strategies: Homebrew first (the upstream-blessed route on macOS), then
+// `go install`. Engram is a Go binary — see the module path below — so the
+// second route works anywhere the Go toolchain is present, which is what
+// makes Engram installable on Linux without Homebrew.
+func (e Engram) Strategies(version string) []Strategy {
+	return []Strategy{
+		{
+			Prereq: "brew",
+			Cmd:    []string{"brew", "install", "gentleman-programming/tap/engram"},
+			Note:   "vía Homebrew (ruta recomendada por upstream)",
+		},
+		{
+			Prereq: "go",
+			// Module path is capitalised upstream; gentle-ai's is not.
+			Cmd:  []string{"go", "install", "github.com/Gentleman-Programming/engram/cmd/engram" + goModuleVersion(version)},
+			Note: "compilado con el toolchain de Go (sin Homebrew)",
+		},
+	}
 }
 
-func (e Engram) Install(version string) error {
-	cmd := e.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
-}
+func (e Engram) Install(version string) error { return runInstall(e, version) }
 
 func (e Engram) Status() (Status, error) {
 	if !xexec.Check("engram") {
