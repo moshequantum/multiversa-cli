@@ -91,6 +91,21 @@ Si te resulta útil, **dales star a sus repos primero**. Sin ellos, esto no exis
 
 ## Instalación · Install
 
+### 1 · Instalador Visual (Recomendado - Desktop)
+El instalador visual empaquetado con **Tauri** te guía paso a paso con una **interfaz acrílica moderna (glassmorphism)** y un **asistente de voz interactivo** potenciado por ElevenLabs:
+
+```bash
+# Descarga e inicia el instalador visual (modo dev)
+cd multiversa-installer
+pnpm install
+pnpm tauri dev
+```
+
+*El asistente de voz lee las instrucciones del proceso en español usando ElevenLabs (o el sintetizador nativo de tu sistema si no configuras una API key).*
+
+### 2 · Instalador por Terminal (CLI / TUI)
+Si prefieres usar la consola clásica:
+
 ```bash
 # Un comando — el instalador pregunta, tú decides (Linux · macOS · WSL)
 curl -sSL https://raw.githubusercontent.com/moshequantum/multiversa-cli/main/installers/shell-curl/install.sh | sh

@@ -38,6 +38,7 @@ func main() {
 		newUSBCmd(),
 		newAddCmd(),
 		newConnectCmd(),
+		newDisconnectCmd(),
 		newBackendCmd(),
 		newDoctorCmd(),
 		newUpdatesCmd(),
