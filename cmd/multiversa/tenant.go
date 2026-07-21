@@ -10,6 +10,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -31,7 +32,7 @@ func newTenantCmd() *cobra.Command {
 			"su vault (0700 — Multiversa nunca lee su contenido), su grafo de\n" +
 			"conocimiento anclado a la identidad, y su memoria Engram.",
 	}
-	cmd.AddCommand(newTenantNewCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd())
+	cmd.AddCommand(newTenantNewCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd(), newTenantSetSecretCmd())
 	return cmd
 }
 
@@ -118,6 +119,59 @@ func parsePillarSpecs(specs []string) ([]manifest.Pillar, error) {
 		out = append(out, p)
 	}
 	return out, nil
+}
+
+// newTenantSetSecretCmd stores one connection key in a tenant's vault. The
+// value is read from STDIN, never from an argument, so it never lands in the
+// shell history or in `ps` output. This is what the visual installer shells out
+// to instead of writing secrets itself — the vault logic lives in one place.
+func newTenantSetSecretCmd() *cobra.Command {
+	var jsonOut bool
+	cmd := &cobra.Command{
+		Use:   "set-secret <slug> <KEY>",
+		Short: "Guarda un secreto en el vault del tenant (el valor se lee de STDIN).",
+		Long: "Escribe o actualiza KEY=valor en ~/.multiversa/tenants/<slug>/vault/secrets.env\n" +
+			"(archivo 0600 dentro del vault 0700). El VALOR se lee de STDIN, nunca de un\n" +
+			"argumento, para que no quede en el historial ni en `ps`.\n\n" +
+			"Ejemplo:\n" +
+			"  printf %s \"$KEY\" | multiversa tenant set-secret mi-os ELEVENLABS_API_KEY",
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			slug, key := args[0], args[1]
+
+			raw, err := io.ReadAll(cmd.InOrStdin())
+			if err != nil {
+				return fmt.Errorf("no se pudo leer el valor de STDIN: %w", err)
+			}
+			// Trim only the trailing newline a pipe or echo adds; a secret is
+			// otherwise taken verbatim.
+			value := strings.TrimRight(string(raw), "\r\n")
+
+			count, err := tenant.SetSecret(slug, key, value)
+			if err != nil {
+				if jsonOut {
+					_ = agentout.EmitError(os.Stdout, "tenant", "set_secret_failed", err.Error(), "")
+					os.Exit(1)
+				}
+				return err
+			}
+
+			if jsonOut {
+				// The value is deliberately never echoed back.
+				return agentout.Emit(os.Stdout, "tenant", struct {
+					Action string `json:"action"`
+					Slug   string `json:"slug"`
+					Key    string `json:"key"`
+					Count  int    `json:"count"`
+				}{"secret_set", slug, key, count})
+			}
+			fmt.Println(theme.Accent.Render("✓ secreto guardado · " + key))
+			fmt.Println(theme.Dim.Render(fmt.Sprintf("  %d en el vault de %s", count, slug)))
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit a JSON envelope (schema multiversa.tenant/v1).")
+	return cmd
 }
 
 func newTenantListCmd() *cobra.Command {

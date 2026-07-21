@@ -6,10 +6,13 @@
 package steps
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/moshequantum/multiversa-cli/internal/profile"
 )
 
 // onlyOnPath rewrites PATH to a temp dir holding just the named fake
@@ -114,6 +117,66 @@ func TestInstallStepMiroFishStillRequiresAgplConsent(t *testing.T) {
 	}
 	if msg.status != stError {
 		t.Fatalf("expected stError without AGPL consent, got %v", msg.status)
+	}
+}
+
+// The other half of the T9 flow: after a real install, the profile must be on
+// disk so the next launch — and Engram — start from the machine's true state.
+// Before this wiring the wizard installed engines and then forgot everything.
+func TestInstallPersistsProfileAfterRealRun(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	step := NewInstall().(*Install)
+	step.Set([]string{"engram", "graphify"}, "local")
+	// Simulate the end state of a run where only engram succeeded.
+	step.statuses["engram"] = stDone
+	step.statuses["graphify"] = stError
+	step.finished = true
+
+	msg, ok := step.persistProfile()().(profileSavedMsg)
+	if !ok {
+		t.Fatalf("expected profileSavedMsg, got %T", step.persistProfile()())
+	}
+	if msg.err != nil {
+		t.Fatalf("persisting profile failed: %v", msg.err)
+	}
+
+	p, err := profile.Load()
+	if err != nil {
+		t.Fatalf("profile not readable after save: %v", err)
+	}
+	if !p.HasEngine("engram") {
+		t.Error("engram installed but not recorded in the profile")
+	}
+	if p.HasEngine("graphify") {
+		t.Error("graphify failed to install but was recorded as present")
+	}
+	if !p.Level.IsValid() {
+		t.Errorf("profile persisted with an invalid level %q", p.Level)
+	}
+}
+
+// A dry-run previews; it must not write a profile, and must not claim to.
+func TestInstallDryRunPersistsNothing(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	step := NewInstall().(*Install)
+	step.SetDryRun(true)
+	step.Set([]string{"engram"}, "local")
+	step.statuses["engram"] = stSkipped
+	step.finished = true
+
+	if _, ok := step.persistProfile()().(profileSavedMsg); !ok {
+		t.Fatal("expected profileSavedMsg from dry-run")
+	}
+	if _, err := profile.Load(); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("dry-run wrote a profile it should not have (Load err = %v)", err)
+	}
+
+	// And the surface must say so, never implying a write happened.
+	step.saved = true
+	if got := step.renderProfileLine(); !strings.Contains(got, "dry-run") {
+		t.Errorf("dry-run profile line should mark itself a preview, got %q", got)
 	}
 }
 

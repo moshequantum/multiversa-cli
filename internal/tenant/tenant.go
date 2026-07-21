@@ -155,7 +155,9 @@ func New(slug, name, kind string, pillars ...manifest.Pillar) (*manifest.Manifes
 		return nil, "", err
 	}
 	keep := "# Vault de " + m.Tenant.Name + " — secretos de este tenant.\n" +
-		"# Multiversa NUNCA lee, serializa ni sincroniza el contenido de este directorio.\n"
+		"# Multiversa NUNCA serializa, sincroniza ni expone a un agente lo que hay\n" +
+		"# aquí. Solo procesos locales que tú ejecutas (p. ej. la voz) leen un\n" +
+		"# secreto para usarlo; nunca sale de esta máquina.\n"
 	if err := os.WriteFile(filepath.Join(dir, m.Vault.Path, "README"), []byte(keep), 0o600); err != nil {
 		return nil, "", err
 	}

@@ -11,6 +11,8 @@ coverage.txt
 *.swo
 .env
 .env.local
+*.env
+secrets.env
 *.local.toml
 node_modules/
 
