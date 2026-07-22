@@ -30,6 +30,7 @@ func main() {
 	}
 
 	root.AddCommand(
+		newCapabilitiesCmd(),
 		newLabCmd(),
 		newInitCmd(),
 		newDetectCmd(),
@@ -38,6 +39,7 @@ func main() {
 		newUSBCmd(),
 		newAddCmd(),
 		newConnectCmd(),
+		newDisconnectCmd(),
 		newBackendCmd(),
 		newDoctorCmd(),
 		newUpdatesCmd(),

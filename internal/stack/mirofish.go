@@ -17,24 +17,29 @@ func (MiroFish) Author() string      { return "666ghj" }
 func (MiroFish) Repo() string        { return "https://github.com/666ghj/MiroFish" }
 func (MiroFish) License() string     { return "AGPL-3.0" }
 func (MiroFish) OptIn() bool         { return true }
-func (MiroFish) Prereq() string      { return "docker" }
 
-func (m MiroFish) Command(version string) []string {
+// Strategies: docker only, and deliberately so. AGPL-3.0 means MiroFish is
+// never embedded, vendored, forked or `go install`ed — a source-building
+// route must not be added here. It stays an external service.
+func (m MiroFish) Strategies(version string) []Strategy {
 	tag := version
 	if tag == "" {
 		tag = "latest"
 	}
 	// Pulled as an external service. Confirm canonical image registry with
 	// upstream (see .outreach/baifu.md) — fallback to GHCR placeholder.
-	return []string{"docker", "pull", "ghcr.io/666ghj/mirofish:" + tag}
+	return []Strategy{{
+		Prereq: "docker",
+		Cmd:    []string{"docker", "pull", "ghcr.io/666ghj/mirofish:" + tag},
+		Note:   "imagen externa (AGPL-3.0: nunca embebida)",
+	}}
 }
 
 func (m MiroFish) Install(version string) error {
 	if !m.AgplAcknowledged {
 		return ErrAgplConsentRequired
 	}
-	cmd := m.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
+	return runInstall(m, version)
 }
 
 func (m MiroFish) Status() (Status, error) {

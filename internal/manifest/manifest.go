@@ -14,6 +14,8 @@ const DefaultPath = "multiversa.toml"
 type Manifest struct {
 	Multiversa Meta              `toml:"multiversa" json:"multiversa"`
 	Tenant     Tenant            `toml:"tenant,omitempty" json:"tenant,omitempty"`
+	Routing    Routing           `toml:"routing,omitempty" json:"routing,omitempty"`
+	Engagement Engagement        `toml:"engagement,omitempty" json:"engagement,omitempty"`
 	Identity   Identity          `toml:"identity,omitempty" json:"identity,omitempty"`
 	Pillars    []Pillar          `toml:"pillars,omitempty" json:"pillars,omitempty"`
 	Scoring    Scoring           `toml:"scoring,omitempty" json:"scoring,omitempty"`
@@ -28,12 +30,29 @@ type Manifest struct {
 }
 
 // Tenant identifies whose OS this manifest instantiates. One manifest =
-// one tenant = one isolated installation (ElevatOS, PulseOS, …).
+// one tenant = one unique project OS. Names belong to their projects and are
+// never product tiers or reusable templates.
 type Tenant struct {
-	Slug  string `toml:"slug,omitempty" json:"slug,omitempty"`   // kebab-case id, dir name under ~/.multiversa/tenants/
-	Name  string `toml:"name,omitempty" json:"name,omitempty"`   // display name, e.g. "PulseOS — Cintia Larizatti"
-	Kind  string `toml:"kind,omitempty" json:"kind,omitempty"`   // personal-os | personal-brand | agency | team
-	Owner string `toml:"owner,omitempty" json:"owner,omitempty"` // contact of the human who decides
+	Slug   string `toml:"slug,omitempty" json:"slug,omitempty"` // kebab-case id, dir name under ~/.multiversa/tenants/
+	Name   string `toml:"name,omitempty" json:"name,omitempty"` // display name of this project OS
+	Kind   string `toml:"kind,omitempty" json:"kind,omitempty"` // project-os; legacy values remain readable
+	Owner  string `toml:"owner,omitempty" json:"owner,omitempty"`
+	OSName string `toml:"os_name,omitempty" json:"os_name,omitempty"`
+}
+
+// Routing declares the privacy and delivery frontier for this project OS.
+type Routing struct {
+	Primary       string   `toml:"primary,omitempty" json:"primary,omitempty"` // lab | group
+	GroupTriggers []string `toml:"group_triggers,omitempty" json:"group_triggers,omitempty"`
+}
+
+// Engagement references how the OS is currently operated. Commercial detail,
+// prices and contract contents stay private in Group; the public manifest only
+// carries an opaque reference and lifecycle phase.
+type Engagement struct {
+	Mode       string `toml:"mode,omitempty" json:"mode,omitempty"` // self-service | consulting | implementation | managed
+	Phase      string `toml:"phase,omitempty" json:"phase,omitempty"`
+	ContractID string `toml:"contract_id,omitempty" json:"contract_id,omitempty"`
 }
 
 // Identity is the brand DNA — the lightweight manifest-level slice of
@@ -122,9 +141,9 @@ type Credits struct {
 func Default() *Manifest {
 	return &Manifest{
 		Multiversa: Meta{
-			Profile: "personal-os",
+			Profile: "project-os",
 			Ethic:   "human-in-the-loop",
-			Version: "0.1",
+			Version: "0.3",
 		},
 		Stack:   map[string]string{},
 		Agents:  Agents{Enabled: []string{}},
@@ -166,6 +185,14 @@ func (m *Manifest) Validate() error {
 	case "", "local", "supabase", "firebase", "insforge":
 	default:
 		return fmt.Errorf("unknown backend provider %q (allowed: local, supabase, firebase, insforge)", m.Backend.Provider)
+	}
+	if m.Routing.Primary != "" && m.Routing.Primary != "lab" && m.Routing.Primary != "group" {
+		return fmt.Errorf("routing.primary must be 'lab' or 'group'")
+	}
+	switch m.Engagement.Mode {
+	case "", "self-service", "consulting", "implementation", "managed":
+	default:
+		return fmt.Errorf("unknown engagement mode %q", m.Engagement.Mode)
 	}
 	return nil
 }

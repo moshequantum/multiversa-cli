@@ -12,20 +12,23 @@ func (Graphify) Author() string      { return "Safi Shamsi" }
 func (Graphify) Repo() string        { return "https://github.com/safishamsi/graphify" }
 func (Graphify) License() string     { return "MIT" }
 func (Graphify) OptIn() bool         { return false }
-func (Graphify) Prereq() string      { return "pipx" }
 
-func (g Graphify) Command(version string) []string {
+// Strategies: pipx only. Graphify is a Python package and pipx is the one
+// route upstream documents; a bare `pip install` would leak into the system
+// interpreter, so it is deliberately not offered.
+func (g Graphify) Strategies(version string) []Strategy {
 	pkg := "graphifyy"
 	if version != "" && version != "latest" {
 		pkg = "graphifyy==" + version
 	}
-	return []string{"pipx", "install", pkg}
+	return []Strategy{{
+		Prereq: "pipx",
+		Cmd:    []string{"pipx", "install", pkg},
+		Note:   "paquete Python aislado con pipx",
+	}}
 }
 
-func (g Graphify) Install(version string) error {
-	cmd := g.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
-}
+func (g Graphify) Install(version string) error { return runInstall(g, version) }
 
 func (g Graphify) Status() (Status, error) {
 	if !xexec.Check("graphify") {

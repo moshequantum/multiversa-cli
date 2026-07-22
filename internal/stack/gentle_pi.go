@@ -1,6 +1,8 @@
 package stack
 
 import (
+	"strings"
+
 	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
 )
 
@@ -12,29 +14,50 @@ func (GentlePi) Author() string      { return "Gentleman-Programming" }
 func (GentlePi) Repo() string        { return "https://github.com/Gentleman-Programming/gentle-pi" }
 func (GentlePi) License() string     { return "MIT" }
 func (GentlePi) OptIn() bool         { return false }
-func (GentlePi) Prereq() string      { return "pnpm" }
 
-func (g GentlePi) Command(version string) []string {
-	// pnpm-only by Multiversa policy. npm is banned across the stack — see
-	// docs and project-rules-pnpm-only memory note.
+// Strategies: pnpm only. npm is banned across the Multiversa stack — see
+// docs and the project-rules-pnpm-only memory note.
+func (g GentlePi) Strategies(version string) []Strategy {
 	pkg := "gentle-pi"
 	if version != "" && version != "latest" {
 		pkg = "gentle-pi@" + version
 	}
-	return []string{"pnpm", "add", "-g", pkg}
+	return []Strategy{{
+		Prereq: "pnpm",
+		Cmd:    []string{"pnpm", "add", "-g", pkg},
+		Note:   "paquete global con pnpm (npm prohibido por política)",
+	}}
 }
 
-func (g GentlePi) Install(version string) error {
-	cmd := g.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
-}
+func (g GentlePi) Install(version string) error { return runInstall(g, version) }
 
+// Status cannot probe the PATH: the gentle-pi npm package declares no `bin`
+// at all — it is a development harness (SDD/OpenSpec, subagents, TDD
+// evidence), not a CLI. Looking for a `gentle-pi` executable therefore always
+// failed, reporting a correctly installed engine as missing. Ask the package
+// manager that owns it instead.
 func (g GentlePi) Status() (Status, error) {
-	if !xexec.Check("gentle-pi") {
+	if !xexec.Check("pnpm") {
 		return Status{Installed: false}, nil
 	}
-	r := xexec.Run("gentle-pi", "--version")
-	return Status{Installed: true, Version: r.LastLine()}, nil
+	r := xexec.Run("pnpm", "list", "-g", "--depth", "0")
+	if r.Err != nil {
+		return Status{Installed: false}, nil
+	}
+	for _, line := range r.Output {
+		// pnpm renders entries as `gentle-pi@1.1.0`, possibly inside a
+		// tree-drawing prefix such as "└── ".
+		idx := strings.Index(line, "gentle-pi@")
+		if idx < 0 {
+			continue
+		}
+		version := strings.Fields(line[idx+len("gentle-pi@"):])
+		if len(version) == 0 {
+			return Status{Installed: true}, nil
+		}
+		return Status{Installed: true, Version: version[0]}, nil
+	}
+	return Status{Installed: false}, nil
 }
 
 func (g GentlePi) Uninstall() error { return ErrNotImplemented }

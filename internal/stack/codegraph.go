@@ -12,22 +12,22 @@ func (CodeGraph) Author() string      { return "Colby McHenry" }
 func (CodeGraph) Repo() string        { return "https://github.com/colbymchenry/codegraph" }
 func (CodeGraph) License() string     { return "MIT" }
 func (CodeGraph) OptIn() bool         { return true }
-func (CodeGraph) Prereq() string      { return "pnpm" }
 
-func (c CodeGraph) Command(version string) []string {
-	// pnpm-only by Multiversa policy. npm is banned across the stack — see
-	// docs and project-rules-pnpm-only memory note.
+// Strategies: pnpm only. npm is banned across the Multiversa stack — see
+// docs and the project-rules-pnpm-only memory note.
+func (c CodeGraph) Strategies(version string) []Strategy {
 	pkg := "@colbymchenry/codegraph"
 	if version != "" && version != "latest" {
 		pkg = "@colbymchenry/codegraph@" + version
 	}
-	return []string{"pnpm", "add", "-g", pkg}
+	return []Strategy{{
+		Prereq: "pnpm",
+		Cmd:    []string{"pnpm", "add", "-g", pkg},
+		Note:   "paquete global con pnpm (npm prohibido por política)",
+	}}
 }
 
-func (c CodeGraph) Install(version string) error {
-	cmd := c.Command(version)
-	return xexec.Run(cmd[0], cmd[1:]...).Err
-}
+func (c CodeGraph) Install(version string) error { return runInstall(c, version) }
 
 func (c CodeGraph) Status() (Status, error) {
 	if !xexec.Check("codegraph") {

@@ -6,9 +6,22 @@ Multiversa convierte tu computadora en un **Sistema Operativo de Negocios Inteli
 
 ---
 
-## 1 · Instala (un solo comando)
+## 1 · Instala (Elige tu método)
 
-Abre una terminal y pega:
+### Opción A: Instalador Visual Asistido por Voz (Tauri + ElevenLabs)
+Si prefieres una interfaz gráfica interactiva, acrílica y con asistencia de voz inteligente (que se sincroniza con tu configuración):
+
+```bash
+# Ingresa al directorio del instalador visual, instala dependencias y lánzalo
+cd multiversa-installer
+pnpm install
+pnpm tauri dev
+```
+
+*El asistente de voz usará ElevenLabs si ingresas tu API Key, o el sintetizador nativo de tu sistema si lo dejas en blanco.*
+
+### Opción B: Instalador Rápido por Terminal (CLI / TUI)
+Si prefieres usar la terminal tradicional, abre tu consola y pega:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/moshequantum/multiversa-cli/main/installers/shell-curl/install.sh | sh
@@ -19,7 +32,7 @@ El instalador se encarga de todo. Tú solo respondes **y** (sí) o **n** (no) a 
 | Te preguntará | Qué significa | Si dudas |
 |---|---|---|
 | ¿Instalo brew / pipx / pnpm? | Herramientas base que los motores necesitan | Responde **y** |
-| ¿Corro el asistente de configuración? | Abre el wizard visual paso a paso | Responde **y** |
+| ¿Corro el asistente de configuración? | Abre el wizard visual (TUI) paso a paso | Responde **y** |
 | ¿Activo el chequeo diario? | Cada mañana revisa si hay actualizaciones y **te avisa** (jamás actualiza solo) | Responde **y** |
 
 Verifica que quedó instalado:

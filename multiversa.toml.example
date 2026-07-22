@@ -2,9 +2,9 @@
 # https://github.com/moshequantum/multiversa-cli
 
 [multiversa]
-profile = "personal-os"          # personal-os | team | ecosystem
+profile = "project-os"           # one unique OS per project
 ethic   = "human-in-the-loop"    # always — "La IA propone, tú decides"
-version = "0.1"
+version = "0.3"
 
 # Engines to install. Comment out what you don't want.
 # Multiversa orchestrates these; it does NOT author them. See [credits] below.
@@ -30,28 +30,37 @@ provider = "local"               # local | supabase | firebase | insforge
 auto_print = true                # print attribution after every install
 
 # ───────────────────────────────────────────────────────────────
-# TENANT DNA (schema 0.2) — the replicable unit of every install.
-# One manifest = one tenant = one isolated OS (ElevatOS, PulseOS, …).
-# Scaffold with: multiversa tenant new <slug> --kind personal-brand
+# PROJECT OS (schema 0.3) — one unique, isolated OS per project.
+# Names belong to projects. No customer OS is a tier or reusable template.
+# Scaffold with: multiversa tenant new <slug> --name "Project Atlas OS"
 # ───────────────────────────────────────────────────────────────
 
 [tenant]
-slug  = "pulseos-cintia"                 # dir under ~/.multiversa/tenants/
-name  = "PulseOS — Cintia Larizatti"
-kind  = "personal-brand"                 # personal-os | personal-brand | agency | team
-owner = "cintia@example.com"             # the human who decides
+slug    = "project-atlas"                # dir under ~/.multiversa/tenants/
+name    = "Project Atlas OS"
+os_name = "AtlasOS"
+kind    = "project-os"
+owner   = "owner@example.com"            # the human who decides
+
+[routing]
+primary = "lab"                          # lab | group
+group_triggers = ["custom-implementation", "managed-operation", "private-data"]
+
+[engagement]
+mode  = "self-service"                   # self-service | consulting | implementation | managed
+phase = "foundation"                     # discovery | foundation | stabilization | autonomy | evolution
 
 [identity]                               # brand DNA — the graph and every skill anchor here
-brand    = "Cintia Larizatti"
-voice    = "cálida, directa, sin tecnicismos"
+brand    = "Project Atlas"
+voice    = "clara, directa, sin tecnicismos"
 language = "es"
 avatar   = "calma"
 taboos   = ["promesas de resultados garantizados"]
 
 [[pillars]]                              # strategic pillars — the scoring engine classifies against these
-id     = "contenido"
-name   = "Contenido y comunidad"
-metric = "engagement semanal"
+id     = "outcomes"
+name   = "Resultados"
+metric = "resultados verificados"
 weight = 1.0
 
 [scoring]                                # weights for the 5 dimensions + anti-negative-loop params

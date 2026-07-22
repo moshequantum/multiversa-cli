@@ -1,7 +1,9 @@
 package steps
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/moshequantum/multiversa-cli/internal/credits"
 	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
+	"github.com/moshequantum/multiversa-cli/internal/profile"
 	"github.com/moshequantum/multiversa-cli/internal/stack"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 )
@@ -36,6 +39,8 @@ type Install struct {
 	current          int
 	spinner          spinner.Model
 	finished         bool
+	saved            bool
+	saveErr          error
 }
 
 // installResultMsg is fired by runEngine when an engine finishes installing.
@@ -44,6 +49,10 @@ type installResultMsg struct {
 	result xexec.Result
 	status engineStatus
 }
+
+// profileSavedMsg reports the outcome of persisting the user's profile once
+// the install run finishes. A nil err means the profile is on disk.
+type profileSavedMsg struct{ err error }
 
 func NewInstall() Step {
 	sp := spinner.New()
@@ -105,24 +114,30 @@ func (i *Install) startEngine(idx int) tea.Cmd {
 		}
 	}
 
-	// Prereq check (e.g. `go`, `pipx`, `pnpm`, `docker` on PATH).
+	// Resolve an install route against this machine: the first strategy
+	// whose prerequisite is on PATH wins. An engine may offer several —
+	// Engram installs via Homebrew *or* the Go toolchain — so a missing
+	// brew is no longer fatal on Linux. Only when every route is blocked do
+	// we stop, and then we name all of them.
 	// Note: npm is banned across the Multiversa stack (pnpm-only policy).
-	if pre := eng.Prereq(); pre != "" && !xexec.Check(pre) {
+	strat, ok := stack.PickStrategy(eng, "latest")
+	if !ok {
 		i.statuses[id] = stPrereqMissing
+		opts := stack.Prereqs(eng, "latest")
 		return func() tea.Msg {
 			return installResultMsg{
 				id:     id,
 				status: stPrereqMissing,
 				result: xexec.Result{
-					Cmd: prereqMissingMsg(pre),
-					Err: fmt.Errorf("%q not found on PATH", pre),
+					Cmd: prereqMissingMsg(opts),
+					Err: &stack.PrereqError{Engine: id, Options: opts},
 				},
 			}
 		}
 	}
 
 	i.statuses[id] = stRunning
-	cmd := eng.Command("latest")
+	cmd := strat.Cmd
 	if len(cmd) == 0 {
 		i.statuses[id] = stError
 		return func() tea.Msg {
@@ -177,6 +192,13 @@ func (i *Install) Update(msg tea.Msg) (Step, tea.Cmd) {
 			return i, i.startEngine(i.current)
 		}
 		i.finished = true
+		// The run is done: persist what this machine now has so the next
+		// launch — and other agents via Engram — start from the real state.
+		return i, i.persistProfile()
+
+	case profileSavedMsg:
+		i.saved = true
+		i.saveErr = m.err
 		return i, nil
 
 	case tea.KeyMsg:
@@ -188,6 +210,38 @@ func (i *Install) Update(msg tea.Msg) (Step, tea.Cmd) {
 		}
 	}
 	return i, nil
+}
+
+// persistProfile records the outcome of the install into the on-disk profile.
+// A dry-run previews nothing, so it writes nothing — and View is careful never
+// to claim otherwise (HILPS: never present a simulated action as a real one).
+func (i *Install) persistProfile() tea.Cmd {
+	if i.DryRun {
+		return func() tea.Msg { return profileSavedMsg{} }
+	}
+	// Snapshot the engines that actually installed, synchronously, so the
+	// closure never reads the step's status map off the Bubble Tea goroutine.
+	var installed []string
+	for _, id := range i.Engines {
+		if i.statuses[id] == stDone {
+			installed = append(installed, id)
+		}
+	}
+	return func() tea.Msg {
+		p, err := profile.Load()
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return profileSavedMsg{err: err}
+		}
+		if !p.Level.IsValid() {
+			// The wizard does not ask for a level yet; default to the middle
+			// tier rather than leaving the field blank on disk.
+			p.Level = profile.Enthusiast
+		}
+		for _, id := range installed {
+			p.MarkInstalled(id)
+		}
+		return profileSavedMsg{err: p.Save()}
+	}
 }
 
 func (i *Install) View() string {
@@ -237,6 +291,9 @@ func (i *Install) View() string {
 	if summary != "" {
 		parts = append(parts, "", summary)
 	}
+	if profileLine := i.renderProfileLine(); profileLine != "" {
+		parts = append(parts, profileLine)
+	}
 	if creditsText != "" {
 		parts = append(parts, "", creditsText)
 	}
@@ -256,7 +313,12 @@ func (i *Install) renderRow(id string) string {
 		icon = i.spinner.View() + " "
 		eng, _ := stack.Resolve(id)
 		if eng != nil {
-			suffix = theme.Dim.Render("$ " + strings.Join(eng.Command("latest"), " "))
+			// Show the route actually taken, not the preferred one — on a
+			// machine without brew this is what tells the user Engram is
+			// being built with Go instead.
+			if s, ok := stack.PickStrategy(eng, "latest"); ok {
+				suffix = theme.Dim.Render("$ " + strings.Join(s.Cmd, " "))
+			}
 		}
 	case stDone:
 		icon = theme.Accent.Render("✓ ")
@@ -281,6 +343,22 @@ func (i *Install) renderRow(id string) string {
 	}
 	name := theme.Body.Render(pad(id, 12))
 	return icon + name + suffix
+}
+
+// renderProfileLine states, honestly, what happened to the profile. It never
+// claims a write that did not occur: a dry-run says so, a failure says so.
+func (i *Install) renderProfileLine() string {
+	if !i.finished || !i.saved {
+		return ""
+	}
+	switch {
+	case i.DryRun:
+		return theme.Dim.Render("perfil sin cambios (dry-run)")
+	case i.saveErr != nil:
+		return theme.Warn.Render("perfil no guardado: " + truncate(i.saveErr.Error(), 50))
+	default:
+		return theme.Dim.Render("perfil guardado · ~/.multiversa/profile.toml")
+	}
 }
 
 func (i *Install) renderSummary() string {
@@ -313,7 +391,24 @@ func (i *Install) renderSummary() string {
 	return theme.Divider + "\n" + strings.Join(parts, "   ")
 }
 
-func prereqMissingMsg(tool string) string {
+// prereqMissingMsg explains how to unblock an engine. An engine with several
+// install routes lists every one, so the user can pick the cheapest — on
+// Linux that is usually the Go toolchain rather than Homebrew.
+func prereqMissingMsg(tools []string) string {
+	switch len(tools) {
+	case 0:
+		return "no install route available"
+	case 1:
+		return prereqHint(tools[0])
+	}
+	hints := make([]string, 0, len(tools))
+	for _, t := range tools {
+		hints = append(hints, prereqHint(t))
+	}
+	return "cualquiera de estas: " + strings.Join(hints, " · o bien ")
+}
+
+func prereqHint(tool string) string {
 	switch tool {
 	case "brew":
 		return "install Homebrew — see https://brew.sh"

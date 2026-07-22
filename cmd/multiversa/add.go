@@ -7,7 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/moshequantum/multiversa-cli/internal/adapters"
 	"github.com/moshequantum/multiversa-cli/internal/agentout"
+	"github.com/moshequantum/multiversa-cli/internal/detect"
+	"github.com/moshequantum/multiversa-cli/internal/manifest"
 	"github.com/moshequantum/multiversa-cli/internal/stack"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 )
@@ -41,10 +44,10 @@ func newAddCmd() *cobra.Command {
 			if !engineExists(engine) {
 				if jsonOut {
 					_ = agentout.EmitError(os.Stdout, "add", "unknown_engine",
-						"engine desconocido: "+engine,
+						"motor desconocido: "+engine,
 						"Motores disponibles: "+engineList())
 				} else {
-					fmt.Fprintf(os.Stderr, "%s engine desconocido: %q\n%s\n",
+					fmt.Fprintf(os.Stderr, "%s motor desconocido: %q\n%s\n",
 						theme.Warn.Render("error:"),
 						engine,
 						theme.Dim.Render("Motores disponibles: "+engineList()),
@@ -56,7 +59,7 @@ func newAddCmd() *cobra.Command {
 				return agentout.Emit(os.Stdout, "add", plannedJSON{
 					Kind: "engine", Target: engine, Status: "planned", PlannedVersion: "",
 					Available:  engineIDs(),
-					Workaround: "multiversa lab → Capa Técnica → Stack base",
+					Workaround: "multiversa lab -> Capa Técnica -> Stack base",
 				})
 			}
 			fmt.Println(theme.Accent.Render("multiversa add · " + engine))
@@ -70,21 +73,20 @@ func newAddCmd() *cobra.Command {
 }
 
 // newConnectCmd registers `multiversa connect <agent>`.
-// v0.4.x: validates the agent name and prints a planned-feature notice.
-// Full agent wiring (CLAUDE.md / .cursorrules / mcp config) ships in a future release.
 func newConnectCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "connect <agent>",
-		Short: "Wire an AI agent connector (próximamente).",
-		Long: "Configure the selected AI agent to work with the installed Multiversa\n" +
-			"stack — writing CLAUDE.md, .cursorrules, MCP config, or agent-specific\n" +
-			"settings as needed. Planned for a future release.\n\n" +
-			"Supported agents: " + agentList(),
+		Short: "Conecta un agente de IA al servidor MCP de Multiversa.",
+		Long: "Configura el agente seleccionado para conectarse al servidor MCP de\n" +
+			"Multiversa, modificando ~/.claude.json, ~/.cursor/mcp.json u otras\n" +
+			"configuraciones del agente según sea necesario.\n\n" +
+			"Agentes soportados: " + agentList(),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			agent := strings.ToLower(args[0])
-			if !agentExists(agent) {
+			adapter, err := adapters.Resolve(agent)
+			if err != nil {
 				if jsonOut {
 					_ = agentout.EmitError(os.Stdout, "connect", "unknown_agent",
 						"agente desconocido: "+agent,
@@ -98,20 +100,94 @@ func newConnectCmd() *cobra.Command {
 				}
 				os.Exit(1)
 			}
-			if jsonOut {
-				return agentout.Emit(os.Stdout, "connect", plannedJSON{
-					Kind: "agent", Target: agent, Status: "planned", PlannedVersion: "",
-					Available:  agentIDs(),
-					Workaround: "multiversa init configura el agente de tu elección",
-				})
+
+			report := detect.Run()
+			var enabledEngines []string
+			for _, eng := range report.Multiversa.Engines {
+				if eng.Installed {
+					enabledEngines = append(enabledEngines, eng.ID)
+				}
 			}
-			fmt.Println(theme.Accent.Render("multiversa connect · " + agent))
-			fmt.Println(theme.Dim.Render("Cableado de agente planificado — llegará en una próxima versión."))
-			fmt.Println(theme.Body.Render("Por ahora, el wizard `multiversa init` configura el agente de tu elección."))
+
+			opts := adapters.ConnectOptions{
+				EnabledEngines: enabledEngines,
+				Manifest:       manifest.DefaultPath,
+			}
+
+			err = adapter.Connect(opts)
+			if err != nil {
+				if jsonOut {
+					_ = agentout.EmitError(os.Stdout, "connect", "connect_failed", err.Error(), "")
+					os.Exit(1)
+				}
+				return err
+			}
+
+			if jsonOut {
+				return agentout.Emit(os.Stdout, "connect", struct {
+					Agent  string   `json:"agent"`
+					Status string   `json:"status"`
+					Active []string `json:"active_engines"`
+				}{agent, "connected", enabledEngines})
+			}
+
+			fmt.Println(theme.Accent.Render("✓ " + adapter.DisplayName() + " conectado exitosamente"))
+			fmt.Println(theme.Dim.Render("  Servidor MCP 'multiversa' registrado en la configuración del agente."))
 			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit a JSON envelope (schema multiversa.connect/v1).")
+	return cmd
+}
+
+// newDisconnectCmd registers `multiversa disconnect <agent>`.
+func newDisconnectCmd() *cobra.Command {
+	var jsonOut bool
+	cmd := &cobra.Command{
+		Use:   "disconnect <agent>",
+		Short: "Desconecta un agente de IA del servidor MCP de Multiversa.",
+		Long:  "Remueve la definición del servidor MCP de Multiversa de las configuraciones del agente.",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			agent := strings.ToLower(args[0])
+			adapter, err := adapters.Resolve(agent)
+			if err != nil {
+				if jsonOut {
+					_ = agentout.EmitError(os.Stdout, "disconnect", "unknown_agent",
+						"agente desconocido: "+agent,
+						"Agentes soportados: "+agentList())
+				} else {
+					fmt.Fprintf(os.Stderr, "%s agente desconocido: %q\n%s\n",
+						theme.Warn.Render("error:"),
+						agent,
+						theme.Dim.Render("Agentes soportados: "+agentList()),
+					)
+				}
+				os.Exit(1)
+			}
+
+			err = adapter.Disconnect()
+			if err != nil {
+				if jsonOut {
+					_ = agentout.EmitError(os.Stdout, "disconnect", "disconnect_failed", err.Error(), "")
+					os.Exit(1)
+				}
+				return err
+			}
+
+			if jsonOut {
+				return agentout.Emit(os.Stdout, "disconnect", struct {
+					Agent  string `json:"agent"`
+					Status string `json:"status"`
+				}{agent, "disconnected"})
+			}
+
+			fmt.Println(theme.Accent.Render("✓ " + adapter.DisplayName() + " desconectado exitosamente"))
+			fmt.Println(theme.Dim.Render("  Servidor MCP 'multiversa' removido de la configuración del agente."))
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit a JSON envelope (schema multiversa.disconnect/v1).")
 	return cmd
 }
 
