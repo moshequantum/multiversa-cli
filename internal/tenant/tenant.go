@@ -112,7 +112,7 @@ func Dir(slug string) (string, error) {
 	return filepath.Join(root, slug), nil
 }
 
-// New scaffolds a tenant profile from a template. It never overwrites:
+// New scaffolds a unique project OS from neutral technical defaults. It never overwrites:
 // an existing tenant dir is an error, keeping profiles append-only.
 //
 // Layout created:
@@ -295,13 +295,15 @@ func Load(slug string) (*manifest.Manifest, string, error) {
 	return m, path, nil
 }
 
-// Template returns the pre-filled DNA for a tenant kind. These are the
-// replicable profiles: "agency" is the ElevatOS shape, "personal-brand"
-// is the PulseOS shape, anything else gets the personal-os default.
+// Template returns neutral technical defaults for a unique project OS. The
+// legacy kind argument is preserved for source compatibility but never selects
+// a customer-shaped profile or changes the OS identity.
 func Template(kind string) *manifest.Manifest {
 	m := manifest.Default()
-	m.Multiversa.Version = "0.2"
-	m.Tenant.Kind = kind
+	m.Multiversa.Version = "0.3"
+	m.Tenant.Kind = "project-os"
+	m.Routing = manifest.Routing{Primary: "lab", GroupTriggers: []string{"custom-implementation", "managed-operation", "private-data"}}
+	m.Engagement = manifest.Engagement{Mode: "self-service", Phase: "foundation"}
 	m.Vault = manifest.Vault{Path: "vault"}
 	m.Graph = manifest.Graph{Engine: "graphify", Anchor: "identity", Ingest: []string{"docs", "decisions"}}
 	m.Sync = manifest.Sync{Providers: []string{"insforge", "gdrive"}, Mode: "backup", Plan: "nano", Auto: false}
@@ -310,30 +312,10 @@ func Template(kind string) *manifest.Manifest {
 		ExplorationQuota: 0.10, DecayHalfLifeDays: 45,
 	}
 
-	switch kind {
-	case "agency":
-		m.Multiversa.Profile = "ecosystem"
-		m.Pillars = []manifest.Pillar{
-			{ID: "clientes", Name: "Cartera de clientes", Metric: "cuentas activas", Weight: 1.0},
-			{ID: "entrega", Name: "Entrega y calidad", Metric: "proyectos a tiempo", Weight: 1.0},
-			{ID: "marca", Name: "Marca y comunidad", Metric: "alcance mensual", Weight: 0.8},
-		}
-		m.Deploy = manifest.Deploy{Targets: []string{"vercel", "cloudflare", "github"}}
-	case "personal-brand":
-		m.Multiversa.Profile = "personal-os"
-		m.Pillars = []manifest.Pillar{
-			{ID: "contenido", Name: "Contenido y comunidad", Metric: "engagement semanal", Weight: 1.0},
-			{ID: "ofertas", Name: "Ofertas y lanzamientos", Metric: "conversiones", Weight: 1.0},
-			{ID: "operacion", Name: "Operación diaria", Metric: "horas recuperadas", Weight: 0.7},
-		}
-		m.Deploy = manifest.Deploy{Targets: []string{"vercel", "insforge"}}
-	default:
-		m.Tenant.Kind = "personal-os"
-		m.Pillars = []manifest.Pillar{
-			{ID: "productividad", Name: "Productividad", Metric: "tareas cerradas", Weight: 1.0},
-			{ID: "conocimiento", Name: "Base de conocimiento", Metric: "memorias útiles", Weight: 0.8},
-		}
-		m.Deploy = manifest.Deploy{Targets: []string{"github"}}
+	m.Pillars = []manifest.Pillar{
+		{ID: "outcomes", Name: "Resultados", Metric: "resultados verificados", Weight: 1.0},
+		{ID: "knowledge", Name: "Conocimiento", Metric: "decisiones recuperables", Weight: 0.8},
 	}
+	m.Deploy = manifest.Deploy{Targets: []string{"github"}}
 	return m
 }

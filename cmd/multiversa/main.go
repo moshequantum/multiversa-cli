@@ -30,6 +30,7 @@ func main() {
 	}
 
 	root.AddCommand(
+		newCapabilitiesCmd(),
 		newLabCmd(),
 		newInitCmd(),
 		newDetectCmd(),

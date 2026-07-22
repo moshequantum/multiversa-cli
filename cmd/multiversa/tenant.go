@@ -3,9 +3,9 @@
 // Each tenant is one directory under ~/.multiversa/tenants/<slug>/
 // holding its DNA (multiversa.toml), its vault (0700, opaque to every
 // Multiversa surface), its graph, and its memory. `tenant new` scaffolds
-// from a template (agency = ElevatOS shape, personal-brand = PulseOS
-// shape), `tenant use` switches context atomically, and everything is
-// readable by agents via --json (schema multiversa.tenant/v1).
+// from neutral project defaults, `tenant use` switches context atomically,
+// and everything is readable by agents via --json
+// (schema multiversa.tenant/v1).
 package main
 
 import (
@@ -38,15 +38,15 @@ func newTenantCmd() *cobra.Command {
 
 func newTenantNewCmd() *cobra.Command {
 	var jsonOut bool
-	var name, kind string
+	var name, kind, osName, owner, route, engagement string
 	var pillarSpecs []string
 	cmd := &cobra.Command{
 		Use:   "new <slug>",
-		Short: "Crea un perfil de tenant desde una plantilla (nunca sobreescribe).",
+		Short: "Crea un OS único para un proyecto (nunca sobreescribe).",
 		Long: "Crea ~/.multiversa/tenants/<slug>/ con manifiesto pre-llenado, vault 0700,\n" +
 			"y directorios de grafo y memoria.\n\n" +
-			"Plantillas (--kind): personal-os (default) · personal-brand (perfil PulseOS)\n" +
-			"· agency (perfil ElevatOS) · team\n\n" +
+			"Cada OS empieza con defaults técnicos neutrales. --kind se conserva\n" +
+			"temporalmente por compatibilidad, pero ya no selecciona tiers ni perfiles de clientes.\n\n" +
 			"Con --pillar se sustituyen los pilares de la plantilla. Formato:\n" +
 			"  --pillar \"Nombre\"                  (métrica vacía, peso 1.0)\n" +
 			"  --pillar \"Nombre=métrica\"          (peso 1.0)\n" +
@@ -54,6 +54,14 @@ func newTenantNewCmd() *cobra.Command {
 			"Repetible. El id se deriva del nombre.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if route != "lab" && route != "group" {
+				return fmt.Errorf("route inválido %q: usa lab o group", route)
+			}
+			switch engagement {
+			case "self-service", "consulting", "implementation", "managed":
+			default:
+				return fmt.Errorf("engagement inválido %q", engagement)
+			}
 			pillars, err := parsePillarSpecs(pillarSpecs)
 			if err != nil {
 				if jsonOut {
@@ -70,6 +78,19 @@ func newTenantNewCmd() *cobra.Command {
 				}
 				return err
 			}
+			m.Tenant.OSName = osName
+			if m.Tenant.OSName == "" {
+				m.Tenant.OSName = m.Tenant.Name
+			}
+			m.Tenant.Owner = owner
+			m.Routing.Primary = route
+			m.Engagement.Mode = engagement
+			if route == "group" && m.Engagement.Phase == "foundation" {
+				m.Engagement.Phase = "discovery"
+			}
+			if err := manifest.Save(dir+"/"+manifest.DefaultPath, m); err != nil {
+				return err
+			}
 			if jsonOut {
 				return agentout.Emit(os.Stdout, "tenant", struct {
 					Action   string             `json:"action"`
@@ -84,8 +105,12 @@ func newTenantNewCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "", "Nombre visible del tenant (ej. \"PulseOS — Cintia Larizatti\").")
-	cmd.Flags().StringVar(&kind, "kind", "personal-os", "Plantilla: personal-os · personal-brand · agency · team.")
+	cmd.Flags().StringVar(&name, "name", "", "Nombre visible del OS del proyecto.")
+	cmd.Flags().StringVar(&kind, "kind", "project-os", "Compatibilidad legacy; los OS nuevos siempre son project-os.")
+	cmd.Flags().StringVar(&osName, "os-name", "", "Nombre propio del OS; por defecto usa --name.")
+	cmd.Flags().StringVar(&owner, "owner", "", "Persona u organización con autoridad sobre el OS.")
+	cmd.Flags().StringVar(&route, "route", "lab", "Frontera primaria: lab o group.")
+	cmd.Flags().StringVar(&engagement, "engagement", "self-service", "self-service · consulting · implementation · managed.")
 	cmd.Flags().StringArrayVar(&pillarSpecs, "pillar", nil, "Pilar \"Nombre[=métrica[=peso]]\". Repetible; sustituye los de la plantilla.")
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit a JSON envelope (schema multiversa.tenant/v1).")
 	return cmd

@@ -22,11 +22,11 @@ func withTempHome(t *testing.T) string {
 func TestNewScaffoldsIsolatedProfile(t *testing.T) {
 	home := withTempHome(t)
 
-	m, dir, err := New("pulseos-cintia", "PulseOS — Cintia", "personal-brand")
+	m, dir, err := New("project-atlas", "Project Atlas OS", "project-os")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if want := filepath.Join(home, ".multiversa", "tenants", "pulseos-cintia"); dir != want {
+	if want := filepath.Join(home, ".multiversa", "tenants", "project-atlas"); dir != want {
 		t.Fatalf("dir = %q, want %q", dir, want)
 	}
 
@@ -39,8 +39,8 @@ func TestNewScaffoldsIsolatedProfile(t *testing.T) {
 		t.Fatalf("vault perm = %o, want 0700", perm)
 	}
 
-	// Template shape: personal-brand = PulseOS pillars + insforge sync.
-	if m.Tenant.Kind != "personal-brand" || len(m.Pillars) != 3 {
+	// Every OS starts from neutral technical defaults, regardless of legacy kind.
+	if m.Tenant.Kind != "project-os" || len(m.Pillars) != 2 {
 		t.Fatalf("unexpected template: kind=%q pillars=%d", m.Tenant.Kind, len(m.Pillars))
 	}
 	if m.Sync.Auto {
@@ -52,25 +52,25 @@ func TestNewScaffoldsIsolatedProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reload manifest: %v", err)
 	}
-	if loaded.Tenant.Slug != "pulseos-cintia" || loaded.Graph.Anchor != "identity" {
+	if loaded.Tenant.Slug != "project-atlas" || loaded.Graph.Anchor != "identity" {
 		t.Fatalf("round-trip lost data: %+v", loaded.Tenant)
 	}
 
 	// Never overwrite an existing profile.
-	if _, _, err := New("pulseos-cintia", "x", "agency"); err == nil {
+	if _, _, err := New("project-atlas", "x", "agency"); err == nil {
 		t.Fatal("expected error on duplicate tenant, got nil")
 	}
 }
 
 func TestUseAndActive(t *testing.T) {
 	withTempHome(t)
-	if _, _, err := New("elevatos-andrea", "ElevatOS — Andrea", "agency"); err != nil {
+	if _, _, err := New("project-orbit", "Project Orbit OS", "project-os"); err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if err := Use("elevatos-andrea"); err != nil {
+	if err := Use("project-orbit"); err != nil {
 		t.Fatalf("Use: %v", err)
 	}
-	if got := Active(); got != "elevatos-andrea" {
+	if got := Active(); got != "project-orbit" {
 		t.Fatalf("Active = %q", got)
 	}
 	if err := Use("no-existe"); err == nil {
