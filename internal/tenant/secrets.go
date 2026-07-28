@@ -48,6 +48,12 @@ func SetSecret(slug, key, value string) (int, error) {
 	if strings.TrimSpace(value) == "" {
 		return 0, fmt.Errorf("el secreto %q está vacío — no se guarda una clave en blanco", key)
 	}
+	if len(value) > 16*1024 {
+		return 0, fmt.Errorf("el secreto %q excede el límite seguro de 16 KiB", key)
+	}
+	if strings.ContainsAny(value, "\x00\r\n") {
+		return 0, fmt.Errorf("el secreto %q contiene caracteres de control no permitidos", key)
+	}
 
 	dir, err := Dir(slug)
 	if err != nil {
@@ -154,7 +160,7 @@ func writeSecrets(path string, entries map[string]string, order []string) error 
 }
 
 // singleQuote wraps a value so it survives shell sourcing intact, escaping any
-// embedded single quote the POSIX way ('\'' ). API keys rarely contain quotes,
+// embedded single quote the POSIX way ('\” ). API keys rarely contain quotes,
 // but a secret store must not corrupt a value that does.
 func singleQuote(v string) string {
 	return "'" + strings.ReplaceAll(v, "'", `'\''`) + "'"

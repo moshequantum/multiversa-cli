@@ -147,6 +147,20 @@ multiversa tenant new pulseos --kind personal-brand   # ADN + vault 0700 + grafo
 multiversa tenant use pulseos                         # cambio de contexto aislado
 multiversa tenant list · show <slug>                  # inspección (secretos jamás)
 
+# Bootstrap integral — crea/reanuda el OS, registra fuentes e invoca Graphify
+multiversa tenant bootstrap cliente-os \
+  --name "Cliente" --owner "Cliente" --route group --engagement consulting \
+  --source https://cliente.example/acerca-de \
+  --author "Cliente" --contributor "Tu nombre" --activate
+
+# Revisar el plan sin crear archivos, descargar fuentes ni ejecutar modelos
+multiversa tenant bootstrap cliente-os --source https://cliente.example --dry-run --json
+
+# Proveedores semánticos por tenant; las claves entran ocultas o por STDIN
+multiversa tenant connect cliente-os gemini  --model gemini-3.6-flash --priority 10
+multiversa tenant connect cliente-os mistral --model mistral-large-latest --priority 20
+multiversa tenant connect cliente-os groq    --model qwen/qwen3.6-27b --priority 30
+
 # Superficie para agentes de IA
 multiversa mcp serve          # servidor MCP por stdio (detect · manifest · tenants · updates · …)
 

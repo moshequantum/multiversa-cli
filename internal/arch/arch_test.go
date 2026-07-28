@@ -48,6 +48,7 @@ var ring = map[string]int{
 	"internal/credits":  ringCore,
 	"internal/manifest": ringCore,
 	"internal/tenant":   ringCore,
+	"internal/ingest":   ringCore,
 	"internal/stack":    ringCore,
 	"internal/lang":     ringCore,
 
@@ -59,6 +60,7 @@ var ring = map[string]int{
 	"internal/embedded": ringDriven,
 	"internal/adapters": ringDriven,
 	"internal/backends": ringDriven,
+	"internal/graphify": ringDriven,
 
 	// driving — surfaces that call in
 	"internal/tui":          ringDriving,
