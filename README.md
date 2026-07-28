@@ -8,7 +8,7 @@ An agentic field conductor. It does not invent the engines — it wakes them, co
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-BDEB34.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/go-1.22+-0A0A0F.svg)](https://go.dev)
-[![v0.7.0](https://img.shields.io/badge/version-v0.7.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
+[![v0.8.0](https://img.shields.io/badge/version-v0.8.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
 [![Stack](https://img.shields.io/badge/stack-orchestrated-5C5C64.svg)](CREDITS.md)
 
 ---
