@@ -129,6 +129,18 @@ func TestSetSecretRejectsBlankValue(t *testing.T) {
 	}
 }
 
+func TestSetSecretRejectsControlCharactersAndOversizedValues(t *testing.T) {
+	newTenantForSecrets(t, "mi-os")
+	for _, bad := range []string{"first\nINJECTED=second", "carriage\rreturn", "nul\x00byte"} {
+		if _, err := SetSecret("mi-os", "API_KEY", bad); err == nil {
+			t.Errorf("expected rejection for control characters in %q", bad)
+		}
+	}
+	if _, err := SetSecret("mi-os", "API_KEY", strings.Repeat("x", 16*1024+1)); err == nil {
+		t.Fatal("expected rejection for an oversized secret")
+	}
+}
+
 // The written file must be shell-sourceable, because a local runtime sources it
 // to use the key. Simulate `sh -c 'set -a; . file; echo $VAR'` semantics by
 // checking the quoting a POSIX shell would need.

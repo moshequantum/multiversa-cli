@@ -59,6 +59,33 @@ Tu perfil vive en `~/.multiversa/tenants/mi-os/`. Dentro hay una carpeta **vault
 
 Para personalizarlo, abre `~/.multiversa/tenants/mi-os/multiversa.toml` y completa la sección `[identity]` con tu marca, tu voz y tus límites (taboos). Todo lo que el sistema haga después heredará esa identidad.
 
+Si ya tienes fuentes públicas aprobadas, puedes crear el OS y construir su
+grafo en un solo flujo reanudable:
+
+```bash
+multiversa tenant bootstrap cliente-os \
+  --name "Cliente" --owner "Cliente" \
+  --source https://cliente.example/acerca-de \
+  --author "Cliente" --contributor "Tu nombre" --activate
+```
+
+Cada `--source` queda registrada con procedencia antes de que Graphify extraiga
+el grafo. Usa `--dry-run` para revisar el plan sin crear archivos ni acceder a
+la red. Graphify ingiere las URLs que le entregas: no descubre perfiles ni
+decide por sí mismo si dos identidades públicas pertenecen a la misma persona.
+
+Puedes conectar varios proveedores semánticos por tenant. La clave se introduce
+de forma oculta en una terminal y permanece en el vault local:
+
+```bash
+multiversa tenant connect cliente-os gemini  --model gemini-3.6-flash --priority 10
+multiversa tenant connect cliente-os mistral --model mistral-large-latest --priority 20
+multiversa tenant connect cliente-os groq    --model qwen/qwen3.6-27b --priority 30
+```
+
+El bootstrap intentará los proveedores configurados en orden de prioridad y
+solo activará el tenant después de obtener y validar un grafo completo.
+
 ## 3 · Conecta tu IA
 
 Si usas Claude Code (u otro agente compatible con MCP):

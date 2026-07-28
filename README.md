@@ -8,7 +8,7 @@ An agentic field conductor. It does not invent the engines — it wakes them, co
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-BDEB34.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/go-1.22+-0A0A0F.svg)](https://go.dev)
-[![v0.7.0](https://img.shields.io/badge/version-v0.7.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
+[![v0.8.0](https://img.shields.io/badge/version-v0.8.0-BDEB34.svg)](https://github.com/moshequantum/multiversa-cli/releases)
 [![Stack](https://img.shields.io/badge/stack-orchestrated-5C5C64.svg)](CREDITS.md)
 
 ---
@@ -146,6 +146,20 @@ multiversa backend insforge   # configurar backend (opcional)
 multiversa tenant new pulseos --kind personal-brand   # ADN + vault 0700 + grafo + memoria
 multiversa tenant use pulseos                         # cambio de contexto aislado
 multiversa tenant list · show <slug>                  # inspección (secretos jamás)
+
+# Bootstrap integral — crea/reanuda el OS, registra fuentes e invoca Graphify
+multiversa tenant bootstrap cliente-os \
+  --name "Cliente" --owner "Cliente" --route group --engagement consulting \
+  --source https://cliente.example/acerca-de \
+  --author "Cliente" --contributor "Tu nombre" --activate
+
+# Revisar el plan sin crear archivos, descargar fuentes ni ejecutar modelos
+multiversa tenant bootstrap cliente-os --source https://cliente.example --dry-run --json
+
+# Proveedores semánticos por tenant; las claves entran ocultas o por STDIN
+multiversa tenant connect cliente-os gemini  --model gemini-3.6-flash --priority 10
+multiversa tenant connect cliente-os mistral --model mistral-large-latest --priority 20
+multiversa tenant connect cliente-os groq    --model qwen/qwen3.6-27b --priority 30
 
 # Superficie para agentes de IA
 multiversa mcp serve          # servidor MCP por stdio (detect · manifest · tenants · updates · …)

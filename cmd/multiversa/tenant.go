@@ -32,7 +32,7 @@ func newTenantCmd() *cobra.Command {
 			"su vault (0700 — Multiversa nunca lee su contenido), su grafo de\n" +
 			"conocimiento anclado a la identidad, y su memoria Engram.",
 	}
-	cmd.AddCommand(newTenantNewCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd(), newTenantSetSecretCmd())
+	cmd.AddCommand(newTenantNewCmd(), newTenantBootstrapCmd(), newTenantConnectProviderCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd(), newTenantSetSecretCmd())
 	return cmd
 }
 

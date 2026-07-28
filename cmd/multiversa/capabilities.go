@@ -25,10 +25,10 @@ func currentCapabilities() capabilitiesJSON {
 		EnvelopeSchemas: []string{"multiversa.cli-envelope/v1"},
 		Commands: []string{
 			"capabilities", "detect", "manifest", "tenant.list", "tenant.show",
-			"tenant.new", "tenant.use", "tenant.set-secret", "mcp.serve",
+			"tenant.new", "tenant.bootstrap", "tenant.connect", "tenant.use", "tenant.set-secret", "mcp.serve",
 		},
 		Features: []string{
-			"project-os", "routing.lab-group", "engagement-reference",
+			"project-os", "tenant-bootstrap", "tenant-llm-fallback", "routing.lab-group", "engagement-reference",
 			"vault.stdin-secrets", "human-in-the-loop",
 		},
 	}
