@@ -35,7 +35,10 @@ func (g Graphify) Status() (Status, error) {
 		return Status{Installed: false}, nil
 	}
 	r := xexec.Run("graphify", "--version")
-	return Status{Installed: true, Version: r.LastLine()}, nil
+	if r.Err != nil {
+		return Status{Installed: true, Path: binaryPath("graphify"), Blocked: true, Missing: []string{"working-version-probe"}}, nil
+	}
+	return Status{Installed: true, Version: r.LastLine(), Path: binaryPath("graphify")}, nil
 }
 
 func (g Graphify) Uninstall() error { return ErrNotImplemented }

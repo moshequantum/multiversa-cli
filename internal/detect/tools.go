@@ -1,8 +1,10 @@
 package detect
 
 import (
+	osexec "os/exec"
 	"strings"
 
+	"github.com/moshequantum/multiversa-cli/internal/capability"
 	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
 )
 
@@ -10,13 +12,15 @@ import (
 // Advisory=true means presence is informational only (e.g. npm — banned by
 // policy, we flag it but don't fail).
 type Tool struct {
-	Name      string `json:"name"`
-	Installed bool   `json:"installed"`
-	Version   string `json:"version,omitempty"`
-	Advisory  bool   `json:"advisory"` // true = informational only, not a "missing" failure
-	Warn      bool   `json:"warn"`     // true = present but flagged (e.g. npm policy violation)
-	Category  string `json:"category"`
-	Path      string `json:"path,omitempty"`
+	Name       string           `json:"name"`
+	Installed  bool             `json:"installed"`
+	Version    string           `json:"version,omitempty"`
+	Advisory   bool             `json:"advisory"` // true = informational only, not a "missing" failure
+	Warn       bool             `json:"warn"`     // true = present but flagged (e.g. npm policy violation)
+	Category   string           `json:"category"`
+	Path       string           `json:"path,omitempty"`
+	State      capability.State `json:"state"`
+	ProbeError string           `json:"probe_error,omitempty"`
 }
 
 // toolProbe describes one item we want to check on the host.
@@ -72,24 +76,42 @@ func detectTools() []Tool {
 			Name:     p.name,
 			Category: p.category,
 			Advisory: p.advisory,
+			State:    capability.Absent,
 		}
 		if !xexec.Check(p.name) {
 			out = append(out, t)
 			continue
 		}
 		t.Installed = true
+		t.State = capability.Installed
+		t.Path, _ = osexec.LookPath(p.name)
 		if p.warnIfPresent {
 			t.Warn = true
 		}
 		if len(p.versionArgs) > 0 {
 			r := xexec.Run(p.name, p.versionArgs...)
-			if r.Err == nil || len(r.Output) > 0 {
+			if r.Err == nil {
 				t.Version = compactVersion(r.LastLine())
+			} else {
+				t.State = capability.Blocked
+				t.ProbeError = compactProbeError(r.LastLine())
 			}
 		}
 		out = append(out, t)
 	}
 	return out
+}
+
+func compactProbeError(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "version probe failed"
+	}
+	const maxLen = 160
+	if len(s) > maxLen {
+		return s[:maxLen] + "…"
+	}
+	return s
 }
 
 // compactVersion squeezes long version strings into a single short line.

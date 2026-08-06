@@ -22,6 +22,7 @@ Antes de escribir una sola línea, este documento.
 | MiroFish = binario/servicio externo, nunca embebido | AGPL-3.0 — nunca en el árbol de fuentes |
 | Sin secretos, `.env`, credenciales ni semillas SQL en el repo | La frontera de privacidad Group/Lab es constitucional |
 | `go vet ./...` y `go test ./...` limpios antes de cada PR | CI es la evidencia, no la descripción |
+| Gates de decisión y arquitectura sin excepciones nuevas | [docs/DECISION-GATES.md](docs/DECISION-GATES.md) es el contrato de merge |
 
 ---
 
@@ -38,6 +39,7 @@ git checkout -b feat/nombre-del-cambio
 # 3. Construir y testear
 go build ./...
 go test ./...
+./scripts/e2e-release.sh
 
 # 4. PR hacia main
 ```

@@ -102,6 +102,9 @@ Desde ese momento tu IA puede leer tu entorno, tus perfiles y el estado de tus h
 
 ```bash
 multiversa detect      # ¿qué hay en mi máquina? (solo lectura)
+multiversa doctor      # ¿qué está incoherente, bloqueado o sin indexar?
+multiversa status      # tenant, salud, alertas y próxima acción aprobable
+multiversa alerts      # historial local de hallazgos abiertos/resueltos
 multiversa updates     # ¿hay algo que actualizar? (solo avisa)
 multiversa tenant list # mis perfiles y cuál está activo
 multiversa credits     # los autores de los motores que orquestamos

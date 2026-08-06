@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -128,7 +129,18 @@ func runStackNonInteractive(opts stackOpts, report detect.Report, planned []tool
 		return nil
 	}
 
-	prof, _ := profile.Load()
+	// A missing profile (os.ErrNotExist) means "first run" — Default()
+	// is safe to save. Any other error means the file exists but is
+	// corrupt/unparseable; profile.Load returns a zero-value Profile in
+	// that case, and saving it would silently wipe level/locale/
+	// installed_engines. So we keep loading in memory (to not break the
+	// install loop below) but skip the final write entirely.
+	prof, profErr := profile.Load()
+	profSavable := profErr == nil || errors.Is(profErr, os.ErrNotExist)
+	if !profSavable {
+		fmt.Fprintf(opts.out, "%s no se pudo leer el perfil existente (%v); no se sobrescribirá para no perder level/locale/installed_engines\n",
+			theme.Warn.Render("⚠"), profErr)
+	}
 	var installed, skipped, failed int
 	for _, tp := range planned {
 		if tp.installed {
@@ -154,7 +166,11 @@ func runStackNonInteractive(opts stackOpts, report detect.Report, planned []tool
 		prof.MarkInstalled(tp.tool.ID())
 		installed++
 	}
-	_ = prof.Save()
+	if profSavable {
+		if err := prof.Save(); err != nil {
+			fmt.Fprintf(opts.out, "%s no se pudo guardar el perfil: %v\n", theme.Warn.Render("⚠"), err)
+		}
+	}
 
 	fmt.Fprintln(opts.out)
 	fmt.Fprintln(opts.out, theme.Dim.Render(fmt.Sprintf(

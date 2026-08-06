@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/moshequantum/multiversa-cli/internal/capability"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
 )
 
@@ -75,6 +76,8 @@ func (r Report) Render(w io.Writer) {
 	for _, e := range r.Multiversa.Engines {
 		var status string
 		switch {
+		case e.State == capability.Blocked:
+			status = theme.Warn.Render(glyphWarn + " blocked · " + strings.Join(e.Missing, ", "))
 		case e.Installed && e.Version != "":
 			status = theme.Accent.Render(glyphOK+" ") + theme.Body.Render(e.Version)
 		case e.Installed:
@@ -85,6 +88,29 @@ func (r Report) Render(w io.Writer) {
 			status = theme.Dim.Render(glyphMiss + " not installed")
 		}
 		b.WriteString(kv(e.ID, status))
+	}
+
+	if len(r.Agents) > 0 {
+		b.WriteString("\n")
+		b.WriteString(theme.Label.Render("Agents"))
+		b.WriteString("\n")
+		for _, a := range r.Agents {
+			status := theme.Dim.Render(glyphMiss + " opt-in, not installed")
+			switch a.State {
+			case capability.Blocked:
+				status = theme.Warn.Render(glyphWarn + " blocked · " + strings.Join(a.Missing, ", "))
+			case capability.Connected:
+				status = theme.Accent.Render(glyphOK + " connected")
+			case capability.Configured:
+				status = theme.Accent.Render(glyphOK + " configured")
+			case capability.Installed:
+				status = theme.Accent.Render(glyphOK + " installed")
+			}
+			if a.Version != "" && a.State != capability.Absent && a.State != capability.Blocked {
+				status += theme.Dim.Render(" · " + a.Version)
+			}
+			b.WriteString(kv(a.ID, status))
+		}
 	}
 
 	if len(r.Multiversa.Repos) > 0 {
@@ -100,7 +126,8 @@ func (r Report) Render(w io.Writer) {
 	b.WriteString("\n")
 	ti, tt := r.ReadyTools()
 	ei, et := r.ReadyEngines()
-	summary := fmt.Sprintf("Ready: %d/%d tools · %d/%d engines", ti, tt, ei, et)
+	ai, at := r.ReadyAgents()
+	summary := fmt.Sprintf("Ready: %d/%d tools · %d/%d engines · %d/%d agents", ti, tt, ei, et, ai, at)
 	b.WriteString(theme.Dim.Render(summary))
 	b.WriteString("\n")
 
@@ -117,6 +144,9 @@ func (r Report) Render(w io.Writer) {
 func renderTool(t Tool) string {
 	var glyph, ver string
 	switch {
+	case t.State == capability.Blocked:
+		glyph = theme.Warn.Render(glyphWarn)
+		ver = theme.Warn.Render(t.ProbeError)
 	case t.Warn && t.Installed:
 		glyph = theme.Warn.Render(glyphWarn)
 		ver = theme.Warn.Render(t.Version)

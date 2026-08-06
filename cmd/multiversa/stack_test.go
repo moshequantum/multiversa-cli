@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -76,6 +78,99 @@ func TestStackEscEmitsCancelMsg(t *testing.T) {
 	msg := cmd()
 	if _, ok := msg.(tui.CancelMsg); !ok {
 		t.Errorf("expected tui.CancelMsg from Esc; got %T", msg)
+	}
+}
+
+// TestStackNonInteractive_CorruptProfileNotOverwritten is the regression
+// test for the data-loss bug: runStackNonInteractive used to do
+// `prof, _ := profile.Load()` and unconditionally `prof.Save()` at the
+// end. When ~/.multiversa/profile.toml exists but fails to parse,
+// profile.Load returns a zero-value Profile — saving it would silently
+// replace the corrupt-but-possibly-recoverable file with a "clean"
+// empty one, permanently destroying whatever level/locale/
+// installed_engines it held. This test uses a throwaway HOME (never the
+// real one) and asserts the corrupt file is left byte-for-byte
+// untouched, with a warning surfaced to the user instead.
+func TestStackNonInteractive_CorruptProfileNotOverwritten(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	profDir := filepath.Join(home, ".multiversa")
+	if err := os.MkdirAll(profDir, 0o755); err != nil {
+		t.Fatalf("mkdir %q: %v", profDir, err)
+	}
+	profPath := filepath.Join(profDir, "profile.toml")
+	const corrupt = "level = \"expert\"\nlocale = [this is not valid toml\n"
+	if err := os.WriteFile(profPath, []byte(corrupt), 0o600); err != nil {
+		t.Fatalf("writing corrupt profile: %v", err)
+	}
+
+	var buf bytes.Buffer
+	// --only=go and --yes: "go" is guaranteed installed in this test's
+	// own environment (the test binary was built with it), so the loop
+	// hits the "skipped" branch and never shells out to a real
+	// installer — this test only cares about profile persistence.
+	if err := runStack(stackOpts{yes: true, only: []string{"go"}, out: &buf}); err != nil {
+		t.Fatalf("runStack returned error: %v", err)
+	}
+
+	got, err := os.ReadFile(profPath)
+	if err != nil {
+		t.Fatalf("profile.toml vanished after runStack: %v", err)
+	}
+	if string(got) != corrupt {
+		t.Errorf("corrupt profile.toml was overwritten by runStack;\ngot:\n%s\nwant (unchanged):\n%s", got, corrupt)
+	}
+
+	out := buf.String()
+	if !strings.Contains(out, "no se pudo leer el perfil existente") {
+		t.Errorf("expected a warning about the unreadable profile in output; got:\n%s", out)
+	}
+}
+
+// TestStackModel_CorruptProfileNotOverwritten covers the same data-loss
+// bug in the Bubble Tea path: stackModel captured profile.Load()'s error
+// into profErr but never checked it before m.prof.Save(). This asserts
+// newStackModel correctly derives profSavable=false for a corrupt file,
+// and that driving the install queue to completion does not touch disk.
+func TestStackModel_CorruptProfileNotOverwritten(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	profDir := filepath.Join(home, ".multiversa")
+	if err := os.MkdirAll(profDir, 0o755); err != nil {
+		t.Fatalf("mkdir %q: %v", profDir, err)
+	}
+	profPath := filepath.Join(profDir, "profile.toml")
+	const corrupt = "level = \"expert\"\nlocale = [this is not valid toml\n"
+	if err := os.WriteFile(profPath, []byte(corrupt), 0o600); err != nil {
+		t.Fatalf("writing corrupt profile: %v", err)
+	}
+
+	planned, report := planStack(stackOpts{only: []string{"go"}})
+	m := newStackModel(report, planned)
+	if m.profSavable {
+		t.Fatal("expected profSavable=false when profile.toml fails to parse")
+	}
+
+	// Drive the model as if an install queue just finished, which is
+	// where the buggy unconditional Save() used to fire.
+	m.phase = phaseInstall
+	m.queue = nil
+	m.cursor = 0
+	m.installCount = 1
+	m.advanceInstall(0)
+
+	got, err := os.ReadFile(profPath)
+	if err != nil {
+		t.Fatalf("profile.toml vanished after advanceInstall: %v", err)
+	}
+	if string(got) != corrupt {
+		t.Errorf("stack TUI overwrote corrupt profile.toml;\ngot:\n%s\nwant (unchanged):\n%s", got, corrupt)
+	}
+
+	if !strings.Contains(m.View(), "perfil existente ilegible") {
+		t.Errorf("expected the done-phase View() to warn about the unreadable profile; got:\n%s", m.View())
 	}
 }
 

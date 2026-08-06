@@ -41,9 +41,9 @@ func (e Engram) Status() (Status, error) {
 	}
 	r := xexec.Run("engram", "--version")
 	if r.Err != nil {
-		return Status{Installed: true}, nil
+		return Status{Installed: true, Path: binaryPath("engram"), Blocked: true, Missing: []string{"working-version-probe"}}, nil
 	}
-	return Status{Installed: true, Version: r.LastLine()}, nil
+	return Status{Installed: true, Version: r.LastLine(), Path: binaryPath("engram")}, nil
 }
 
 func (e Engram) Uninstall() error { return ErrNotImplemented }

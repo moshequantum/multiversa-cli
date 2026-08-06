@@ -34,6 +34,8 @@ func main() {
 		newLabCmd(),
 		newInitCmd(),
 		newDetectCmd(),
+		newStatusCmd(),
+		newAlertsCmd(),
 		newStackCmd(),
 		newWorkspaceCmd(),
 		newUSBCmd(),

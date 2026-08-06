@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -65,6 +66,12 @@ type stackModel struct {
 	cursor  int   // position in queue
 	prof    profile.Profile
 	profErr error
+	// profSavable is false when profile.Load() failed for a reason
+	// other than "file does not exist" — i.e. the file is present but
+	// corrupt/unparseable. In that case m.prof is a zero-value Profile
+	// and must never be written to disk, or level/locale/
+	// installed_engines on the real file would be silently wiped.
+	profSavable bool
 
 	cancelled    bool
 	done         int
@@ -76,6 +83,7 @@ type stackModel struct {
 // newStackModel builds the initial selector view from a plan.
 func newStackModel(report detect.Report, planned []toolPlan) *stackModel {
 	prof, profErr := profile.Load()
+	profSavable := profErr == nil || errors.Is(profErr, os.ErrNotExist)
 	items := make([]tui.SelectorItem, 0, len(planned))
 	selected := make([]bool, len(planned))
 	cursor := -1
@@ -113,13 +121,14 @@ func newStackModel(report detect.Report, planned []toolPlan) *stackModel {
 		cursor = 0
 	}
 	return &stackModel{
-		report:   report,
-		planned:  planned,
-		selector: tui.Selector{Items: items, Cursor: cursor},
-		selected: selected,
-		phase:    phaseSelect,
-		prof:     prof,
-		profErr:  profErr,
+		report:      report,
+		planned:     planned,
+		selector:    tui.Selector{Items: items, Cursor: cursor},
+		selected:    selected,
+		phase:       phaseSelect,
+		prof:        prof,
+		profErr:     profErr,
+		profSavable: profSavable,
 	}
 }
 
@@ -144,8 +153,11 @@ func (m *stackModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tui.CancelMsg:
 		m.cancelled = true
-		// Mid-install cancellation persists the partial result.
-		if m.phase == phaseInstall {
+		// Mid-install cancellation persists the partial result — but only
+		// when the on-disk profile was actually readable (or absent). If
+		// it was corrupt, m.prof is a zero-value stand-in and writing it
+		// would destroy the real level/locale/installed_engines.
+		if m.phase == phaseInstall && m.profSavable {
 			_ = m.prof.Save()
 		}
 		return m, tea.Quit
@@ -259,8 +271,11 @@ func (m *stackModel) recordResult(msg stackInstallResultMsg) (tea.Model, tea.Cmd
 // next install or transitioning to phaseDone.
 func (m *stackModel) advanceInstall(_ int) (tea.Model, tea.Cmd) {
 	if m.cursor >= len(m.queue) {
-		// Done — persist installed marks.
-		_ = m.prof.Save()
+		// Done — persist installed marks, unless the profile on disk was
+		// corrupt (see profSavable's doc comment).
+		if m.profSavable {
+			_ = m.prof.Save()
+		}
 		m.phase = phaseDone
 		return m, tea.Quit
 	}
@@ -285,7 +300,12 @@ func (m *stackModel) View() string {
 		done, skipped, failed, _ := m.progress.Counts()
 		summary := theme.Dim.Render(fmt.Sprintf(
 			"Listo: %d instalados · %d omitidos · %d fallidos", done, skipped, failed))
-		return header + "\n" + m.progress.Render() + "\n" + summary + "\n"
+		out := header + "\n" + m.progress.Render() + "\n" + summary + "\n"
+		if !m.profSavable && m.installCount > 0 {
+			out += theme.Warn.Render(fmt.Sprintf(
+				"⚠ perfil existente ilegible (%v); installed_engines no se actualizó para no perder level/locale", m.profErr)) + "\n"
+		}
+		return out
 	}
 }
 

@@ -23,3 +23,21 @@ func TestCapabilitiesDeclareProjectOSWriteContract(t *testing.T) {
 		}
 	}
 }
+
+func TestCapabilitiesDeclareAuditAndLocalExecutionCommands(t *testing.T) {
+	caps := currentCapabilities()
+	want := map[string]bool{
+		"doctor": false, "status": false, "alerts": false,
+		"tenant.exec": false, "tenant.secrets": false,
+	}
+	for _, command := range caps.Commands {
+		if _, ok := want[command]; ok {
+			want[command] = true
+		}
+	}
+	for command, found := range want {
+		if !found {
+			t.Errorf("missing command %q", command)
+		}
+	}
+}

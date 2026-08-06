@@ -32,7 +32,7 @@ An agentic field conductor. It does not invent the engines — it wakes them, co
 
           engines: engram · graphify · gentle-ai · codegraph
           agents:  claude-code · cursor · codex · gemini-cli
-                   opencode · aider · cline · continue · roo-code
+                   opencode · aider · cline · continue · roo-code · hermes
           backends: local · supabase · firebase · insforge
 ```
 
@@ -87,6 +87,16 @@ Si te resulta útil, **dales star a sus repos primero**. Sin ellos, esto no exis
 
 > MiroFish se invoca como binario/servicio externo únicamente. Nunca se embebe en el core MIT.
 
+### Runtime de agente opcional
+
+| Agente | Qué aporta | Autor | Licencia |
+|---|---|---|---|
+| **Hermes Agent** | Perfiles/proyectos, MCP, skills, cron y gateway; se conecta como cliente del MCP de Multiversa | Nous Research | MIT |
+
+Hermes no es requisito ni motor embebido. `multiversa detect` lo incluye en el inventario,
+`doctor` diagnostica su conexión y `multiversa connect hermes` solo modifica su
+configuración cuando la persona ejecuta explícitamente el comando.
+
 ---
 
 ## Instalación · Install
@@ -137,9 +147,13 @@ multiversa init               # wizard de setup completo
 
 # Módulos individuales
 multiversa detect             # leer entorno, sin modificar nada
+multiversa doctor             # diagnosticar deriva y bloqueantes con evidencia
+multiversa status             # tenant, salud, stack, alertas y próxima acción
+multiversa alerts             # ledger local; --all incluye alertas resueltas
 multiversa stack              # instalar toolchain base (Go · Rust · Node · pnpm · Docker)
 multiversa add engram         # añadir un motor específico
 multiversa connect cursor     # cablear un agente de IA
+multiversa connect hermes     # registrar `multiversa mcp serve` en Hermes (opt-in)
 multiversa backend insforge   # configurar backend (opcional)
 
 # Tenants — perfiles replicables (ElevatOS · PulseOS · el tuyo)
@@ -162,11 +176,10 @@ multiversa tenant connect cliente-os mistral --model mistral-large-latest --prio
 multiversa tenant connect cliente-os groq    --model qwen/qwen3.6-27b --priority 30
 
 # Superficie para agentes de IA
-multiversa mcp serve          # servidor MCP por stdio (detect · manifest · tenants · updates · …)
+multiversa mcp serve          # MCP read-only (detect · doctor · status · alerts · tenants · updates · …)
 
 # Información
 multiversa credits            # atribución completa upstream
-multiversa doctor             # verificar salud del stack
 multiversa updates            # releases upstream: qué hay que actualizar
 multiversa updates cron       # programar el chequeo diario (--apply)
 multiversa version            # versión actual
@@ -199,6 +212,9 @@ internal/
   wizard/                Pasos del wizard init (Bubble Tea)
   theme/                 Tokens Lipgloss (Carbon · Chartreuse · Ivory)
   detect/                Escáner de entorno (OS · toolchain · motores presentes)
+  doctor/                Diagnósticos deterministas con evidencia
+  alerts/                Ledger local de hallazgos y resoluciones
+  capability/            Lifecycle común: absent → healthy / drifted / blocked
   credits/               Atribución upstream (fuente única de verdad)
 installers/              GoReleaser — Brew · curl · Scoop · go install
 ```

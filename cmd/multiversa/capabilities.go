@@ -24,12 +24,13 @@ func currentCapabilities() capabilitiesJSON {
 		ProfileSchemas:  []string{"0.2-read", "0.3-read-write"},
 		EnvelopeSchemas: []string{"multiversa.cli-envelope/v1"},
 		Commands: []string{
-			"capabilities", "detect", "manifest", "tenant.list", "tenant.show",
-			"tenant.new", "tenant.bootstrap", "tenant.connect", "tenant.use", "tenant.set-secret", "mcp.serve",
+			"capabilities", "detect", "doctor", "status", "alerts", "manifest", "tenant.list", "tenant.show",
+			"tenant.new", "tenant.bootstrap", "tenant.connect", "tenant.use", "tenant.set-secret",
+			"tenant.exec", "tenant.secrets", "mcp.serve",
 		},
 		Features: []string{
 			"project-os", "tenant-bootstrap", "tenant-llm-fallback", "routing.lab-group", "engagement-reference",
-			"vault.stdin-secrets", "human-in-the-loop",
+			"vault.stdin-secrets", "human-in-the-loop", "agent.hermes-opt-in", "local-alert-ledger",
 		},
 	}
 }

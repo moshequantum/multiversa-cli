@@ -1,7 +1,9 @@
 package version
 
 var (
-	Version = "v0.8.0"
+	// Untagged builds must never impersonate an official release. GoReleaser
+	// replaces all three values for signed/tagged artifacts.
+	Version = "v0.9.0-dev"
 	Commit  = "none"
 	Date    = "unknown"
 )

@@ -168,3 +168,64 @@ func TestSecretsNeverLeakIntoTenantInfo(t *testing.T) {
 		t.Fatal("secret value leaked into tenant Info")
 	}
 }
+
+// SecretNames is what every surface uses to *show* a vault, so it must return
+// names and only names, in the order they were added.
+func TestSecretNamesReturnsNamesNotValues(t *testing.T) {
+	newTenantForSecrets(t, "mi-os")
+	for _, k := range []string{"INSFORGE_API_KEY", "MANYCHAT_API_KEY"} {
+		if _, err := SetSecret("mi-os", k, "valor-"+k); err != nil {
+			t.Fatalf("SetSecret %s: %v", k, err)
+		}
+	}
+
+	names, err := SecretNames("mi-os")
+	if err != nil {
+		t.Fatalf("SecretNames: %v", err)
+	}
+	want := []string{"INSFORGE_API_KEY", "MANYCHAT_API_KEY"}
+	if strings.Join(names, ",") != strings.Join(want, ",") {
+		t.Fatalf("names = %v, want %v", names, want)
+	}
+	for _, n := range names {
+		if strings.Contains(n, "valor-") {
+			t.Fatalf("SecretNames devolvió un valor: %q", n)
+		}
+	}
+
+	// A profile with no vault yet is empty, not an error.
+	newTenantForSecrets(t, "sin-claves")
+	empty, err := SecretNames("sin-claves")
+	if err != nil || len(empty) != 0 {
+		t.Fatalf("vault vacío: names=%v err=%v", empty, err)
+	}
+}
+
+// Environ feeds a child process. An alias must add the expected name without
+// dropping the original, and a missing vault key must fail loudly instead of
+// launching the child with an empty credential.
+func TestEnvironAppliesAliasesAndRefusesMissingKeys(t *testing.T) {
+	newTenantForSecrets(t, "mi-os")
+	if _, err := SetSecret("mi-os", "INSFORGE_API_KEY", "clave-de-este-perfil"); err != nil {
+		t.Fatalf("SetSecret: %v", err)
+	}
+
+	env, names, err := Environ("mi-os", map[string]string{"INSFORGE_API_KEY": "API_KEY"})
+	if err != nil {
+		t.Fatalf("Environ: %v", err)
+	}
+	joined := strings.Join(env, "\n")
+	if !strings.Contains(joined, "INSFORGE_API_KEY=clave-de-este-perfil") {
+		t.Error("falta la clave original en el entorno")
+	}
+	if !strings.Contains(joined, "API_KEY=clave-de-este-perfil") {
+		t.Error("el alias no llegó al entorno del hijo")
+	}
+	if strings.Join(names, ",") != "API_KEY,INSFORGE_API_KEY" {
+		t.Errorf("names = %v", names)
+	}
+
+	if _, _, err := Environ("mi-os", map[string]string{"NO_EXISTE": "API_KEY"}); err == nil {
+		t.Error("un alias a una clave inexistente debería fallar, no arrancar el hijo sin credencial")
+	}
+}

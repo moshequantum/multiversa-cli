@@ -57,9 +57,8 @@ func TestGentleAIStatusFindsBothBinaryNames(t *testing.T) {
 	}
 }
 
-// The gentle-pi npm package declares no `bin` at all — it is a development
-// harness, not a CLI — so a PATH probe can never find it. Detection has to
-// ask pnpm, which owns the install.
+// A legacy global gentle-pi artifact without Pi is reported as blocked rather
+// than ready. This preserves enough evidence to offer the runtime repair.
 func TestGentlePiStatusAsksPnpmNotThePath(t *testing.T) {
 	fakeBinOnPath(t, "pnpm", `echo "dependencies:"; echo "└── gentle-pi@1.1.0"`)
 
@@ -70,8 +69,38 @@ func TestGentlePiStatusAsksPnpmNotThePath(t *testing.T) {
 	if !st.Installed {
 		t.Fatal("gentle-pi installed via pnpm but reported missing")
 	}
+	if !st.Blocked {
+		t.Fatal("legacy package without Pi runtime must be blocked")
+	}
 	if st.Version != "1.1.0" {
 		t.Errorf("version = %q, want 1.1.0", st.Version)
+	}
+}
+
+func TestGentlePiStatusUsesPiInventoryVersion(t *testing.T) {
+	dir := t.TempDir()
+	pi := filepath.Join(dir, "pi")
+	if err := os.WriteFile(pi, []byte("#!/bin/sh\nprintf '%s\\n' 'User packages:' '  npm:gentle-pi@2.1.2'\n"), 0o755); err != nil {
+		t.Fatalf("writing fake pi: %v", err)
+	}
+	pnpm := filepath.Join(dir, "pnpm")
+	if err := os.WriteFile(pnpm, []byte("#!/bin/sh\necho '└── gentle-pi@1.2.0'\n"), 0o755); err != nil {
+		t.Fatalf("writing fake pnpm: %v", err)
+	}
+	t.Setenv("PATH", dir)
+
+	st, err := (GentlePi{}).Status()
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+	if !st.Installed || st.Blocked {
+		t.Fatalf("Pi package should be ready: %+v", st)
+	}
+	if st.Version != "2.1.2" {
+		t.Errorf("version = %q, want Pi inventory version 2.1.2", st.Version)
+	}
+	if strings.Join(st.Evidence, ",") != "runtime:pi,pi-package:gentle-pi" {
+		t.Errorf("evidence = %v", st.Evidence)
 	}
 }
 
@@ -241,11 +270,11 @@ func TestPickStrategyFailsClosedAndNamesEveryOption(t *testing.T) {
 	}
 }
 
-// Engines with a single route keep their original behaviour verbatim.
-func TestSingleStrategyEnginesAreUnchanged(t *testing.T) {
+// Engines with a single route expose the currently supported upstream command.
+func TestSingleStrategyEngines(t *testing.T) {
 	cases := map[string][]string{
 		"graphify":  {"pipx", "install", "graphifyy"},
-		"gentle-pi": {"pnpm", "add", "-g", "gentle-pi"},
+		"gentle-pi": {"pi", "install", "npm:gentle-pi"},
 		"codegraph": {"pnpm", "add", "-g", "@colbymchenry/codegraph"},
 	}
 	for id, want := range cases {
@@ -268,7 +297,7 @@ func TestSingleStrategyEnginesAreUnchanged(t *testing.T) {
 func TestVersionPinningPerPackageManager(t *testing.T) {
 	cases := map[string]struct{ engine, want string }{
 		"pipx":      {"graphify", "graphifyy==1.2.3"},
-		"pnpm":      {"gentle-pi", "gentle-pi@1.2.3"},
+		"pi":        {"gentle-pi", "npm:gentle-pi@1.2.3"},
 		"goinstall": {"engram", "github.com/Gentleman-Programming/engram/cmd/engram@v1.2.3"},
 	}
 	for name, c := range cases {

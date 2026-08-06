@@ -34,7 +34,10 @@ func (c CodeGraph) Status() (Status, error) {
 		return Status{Installed: false}, nil
 	}
 	r := xexec.Run("codegraph", "--version")
-	return Status{Installed: true, Version: r.LastLine()}, nil
+	if r.Err != nil {
+		return Status{Installed: true, Path: binaryPath("codegraph"), Blocked: true, Missing: []string{"working-version-probe"}}, nil
+	}
+	return Status{Installed: true, Version: r.LastLine(), Path: binaryPath("codegraph")}, nil
 }
 
 func (c CodeGraph) Uninstall() error { return ErrNotImplemented }
