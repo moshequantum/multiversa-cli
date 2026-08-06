@@ -273,9 +273,15 @@ func engineExists(id string) bool {
 	return false
 }
 
-// agentIDs returns the known agent adapter IDs.
+// agentIDs returns the known agent adapter IDs, derived from the adapter
+// registry so the help text can never drift from what `connect` accepts.
 func agentIDs() []string {
-	return []string{"claude-code", "cursor", "codex", "gemini-cli", "opencode", "aider", "cline", "continue", "roo-code", "generic-mcp"}
+	all := adapters.List()
+	out := make([]string, 0, len(all))
+	for _, a := range all {
+		out = append(out, a.ID())
+	}
+	return out
 }
 
 // agentList returns a comma-joined list of known agent IDs for help text.

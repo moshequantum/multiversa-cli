@@ -97,6 +97,10 @@ Hermes no es requisito ni motor embebido. `multiversa detect` lo incluye en el i
 `doctor` diagnostica su conexión y `multiversa connect hermes` solo modifica su
 configuración cuando la persona ejecuta explícitamente el comando.
 
+**En móvil no hay CLI.** El canal recomendado es Telegram, vía el gateway de Hermes —
+sin plantillas y sin costo por mensaje, a diferencia de WhatsApp. Ver
+[`docs/CANALES-MOVILES.md`](docs/CANALES-MOVILES.md).
+
 ---
 
 ## Instalación · Install
