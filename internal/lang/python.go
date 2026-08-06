@@ -7,9 +7,11 @@ type Python struct{}
 
 func (Python) ID() string          { return "python" }
 func (Python) DisplayName() string { return "Python" }
-func (Python) Description() string { return "Python runtime. pyenv-managed on Unix, official MSI on Windows." }
-func (Python) Probe() string       { return "python3" }
-func (p Python) Installed() bool   { return installed(p.Probe()) }
+func (Python) Description() string {
+	return "Python runtime. pyenv-managed on Unix, official MSI on Windows."
+}
+func (Python) Probe() string     { return "python3" }
+func (p Python) Installed() bool { return installed(p.Probe()) }
 
 func (Python) PlanFor(osKind, _ string) (Plan, error) {
 	switch osKind {

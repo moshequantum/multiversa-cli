@@ -120,4 +120,3 @@ func (c Cursor) Disconnect() error {
 
 	return nil
 }
-

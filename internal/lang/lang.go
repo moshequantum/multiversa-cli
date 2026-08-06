@@ -30,10 +30,10 @@ type Plan struct {
 
 // Tool is one OS-level developer dependency.
 type Tool interface {
-	ID() string           // stable kebab-case identifier
-	DisplayName() string  // human label
-	Description() string  // one-line purpose
-	Probe() string        // binary name to check on PATH (matches detect)
+	ID() string          // stable kebab-case identifier
+	DisplayName() string // human label
+	Description() string // one-line purpose
+	Probe() string       // binary name to check on PATH (matches detect)
 
 	// PlanFor returns the install Plan for the given OS kind ("darwin",
 	// "linux", "windows") and pkgMgr ("brew", "apt", "dnf", …). It returns

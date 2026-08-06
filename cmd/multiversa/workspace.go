@@ -11,9 +11,10 @@
 // so the consultive front and the executor live in separate phases.
 //
 // Exit codes:
-//   0  success (or --show, or non-TTY abort)
-//   1  prerequisites missing OR script failure
-//   2  user cancel (Esc or n at the confirm prompt)
+//
+//	0  success (or --show, or non-TTY abort)
+//	1  prerequisites missing OR script failure
+//	2  user cancel (Esc or n at the confirm prompt)
 package main
 
 import (
