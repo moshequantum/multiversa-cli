@@ -9,9 +9,11 @@ type Docker struct{}
 
 func (Docker) ID() string          { return "docker" }
 func (Docker) DisplayName() string { return "Docker" }
-func (Docker) Description() string { return "Container runtime. Engine on Linux, Desktop on macOS/Windows." }
-func (Docker) Probe() string       { return "docker" }
-func (d Docker) Installed() bool   { return installed(d.Probe()) }
+func (Docker) Description() string {
+	return "Container runtime. Engine on Linux, Desktop on macOS/Windows."
+}
+func (Docker) Probe() string     { return "docker" }
+func (d Docker) Installed() bool { return installed(d.Probe()) }
 
 func (Docker) PlanFor(osKind, pkgMgr string) (Plan, error) {
 	switch osKind {

@@ -313,11 +313,11 @@ func (m USBModel) View() string {
 	b.WriteByte('\n')
 
 	// Info pane: host, script, prereq summary, device-path hint.
-	b.WriteString(theme.Label.Render("host")+"     "+
+	b.WriteString(theme.Label.Render("host") + "     " +
 		theme.Body.Render(fmt.Sprintf("%s/%s · %s",
-			m.report.OS.Kind, m.report.OS.Arch, m.report.OS.Distro)), )
+			m.report.OS.Kind, m.report.OS.Arch, m.report.OS.Distro)))
 	b.WriteByte('\n')
-	b.WriteString(theme.Label.Render("script")+"   "+m.scriptName+theme.Dim.Render(" (embebido)"))
+	b.WriteString(theme.Label.Render("script") + "   " + m.scriptName + theme.Dim.Render(" (embebido)"))
 	b.WriteByte('\n')
 
 	prereq := tui.Choose(m.verbosity,

@@ -36,6 +36,14 @@ jobs:
         run: |
           go build ./...
           go vet ./...
+          go test -count=1 -race ./...
+          ./scripts/e2e-release.sh
+
+      - name: Vulnerability gate
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: '1.25.x'
+          go-package: ./...
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6

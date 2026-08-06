@@ -69,16 +69,16 @@ func TestSave_CreatesParentDirectory(t *testing.T) {
 
 func TestDetectLocale(t *testing.T) {
 	cases := map[string]string{
-		"":              "en",
-		"C":             "en",
-		"POSIX":         "en",
-		"en_US.UTF-8":   "en",
-		"en_GB":         "en",
-		"es_VE.UTF-8":   "es-LA",
-		"es_MX":         "es-LA",
-		"es_ES.UTF-8":   "es-LA", // Spain still maps to es-LA — we only ship neutral Latam.
-		"fr_FR.UTF-8":   "en",    // Unsupported language falls back to English.
-		"  en_US ":      "en",    // Whitespace tolerance.
+		"":            "en",
+		"C":           "en",
+		"POSIX":       "en",
+		"en_US.UTF-8": "en",
+		"en_GB":       "en",
+		"es_VE.UTF-8": "es-LA",
+		"es_MX":       "es-LA",
+		"es_ES.UTF-8": "es-LA", // Spain still maps to es-LA — we only ship neutral Latam.
+		"fr_FR.UTF-8": "en",    // Unsupported language falls back to English.
+		"  en_US ":    "en",    // Whitespace tolerance.
 	}
 	for in, want := range cases {
 		if got := DetectLocale(in); got != want {

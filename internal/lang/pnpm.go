@@ -8,9 +8,11 @@ type Pnpm struct{}
 
 func (Pnpm) ID() string          { return "pnpm" }
 func (Pnpm) DisplayName() string { return "pnpm" }
-func (Pnpm) Description() string { return "JS/TS package manager. Multiversa policy: pnpm only, never npm." }
-func (Pnpm) Probe() string       { return "pnpm" }
-func (p Pnpm) Installed() bool   { return installed(p.Probe()) }
+func (Pnpm) Description() string {
+	return "JS/TS package manager. Multiversa policy: pnpm only, never npm."
+}
+func (Pnpm) Probe() string     { return "pnpm" }
+func (p Pnpm) Installed() bool { return installed(p.Probe()) }
 
 func (Pnpm) PlanFor(osKind, _ string) (Plan, error) {
 	switch osKind {

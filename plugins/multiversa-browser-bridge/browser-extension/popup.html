@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multiversa Browser Bridge</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">MULTIVERSA · PUENTE LOCAL</p>
+      <h1>Pestaña activa</h1>
+      <p id="domain" class="domain">Comprobando…</p>
+      <p class="notice">Autoriza esta pestaña una vez y Multiversa podrá inspeccionarla y operarla durante 30 minutos. Cookies, claves y sesiones no salen del navegador.</p>
+      <button id="control" type="button">Activar control por 30 min</button>
+      <button id="capture" type="button">Vista segura</button>
+      <button id="send" type="button" class="secondary">Enviar a Multiversa</button>
+      <p id="status" role="status" aria-live="polite"></p>
+      <details id="preview-wrap" hidden>
+        <summary>Ver resumen</summary>
+        <pre id="preview"></pre>
+      </details>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+:root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+body { width: 320px; margin: 0; background: #11110f; color: #f5f1e8; }
+main { padding: 18px; }
+.eyebrow { color: #bedb34; font-size: 10px; font-weight: 700; letter-spacing: .12em; margin: 0 0 8px; }
+h1 { font-size: 20px; line-height: 1.1; margin: 0; }
+.domain { color: #bedb34; font-size: 13px; margin: 7px 0 14px; overflow-wrap: anywhere; }
+.notice { border-left: 2px solid #bedb34; color: #c8c3b9; font-size: 12px; line-height: 1.45; margin: 0 0 16px; padding-left: 9px; }
+button { background: #bedb34; border: 0; border-radius: 7px; color: #161710; cursor: pointer; display: block; font: inherit; font-weight: 700; margin: 9px 0; padding: 10px 12px; width: 100%; }
+button.secondary { background: transparent; border: 1px solid #65655d; color: #f5f1e8; }
+button:disabled { cursor: wait; opacity: .6; }
+#status { color: #c8c3b9; font-size: 12px; line-height: 1.4; min-height: 18px; }
+#status.error { color: #ff9c9c; }
+details { border-top: 1px solid #3d3d37; font-size: 12px; margin-top: 12px; padding-top: 10px; }
+pre { background: #1b1b18; border-radius: 6px; max-height: 190px; overflow: auto; padding: 9px; white-space: pre-wrap; word-break: break-word; }

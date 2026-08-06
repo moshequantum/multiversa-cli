@@ -17,8 +17,10 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 
+	alertledger "github.com/moshequantum/multiversa-cli/internal/alerts"
 	"github.com/moshequantum/multiversa-cli/internal/credits"
 	"github.com/moshequantum/multiversa-cli/internal/detect"
+	"github.com/moshequantum/multiversa-cli/internal/doctor"
 	"github.com/moshequantum/multiversa-cli/internal/manifest"
 	"github.com/moshequantum/multiversa-cli/internal/tenant"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
@@ -35,7 +37,7 @@ func newMCPCmd() *cobra.Command {
 		Use:   "serve",
 		Short: "Sirve las superficies de solo lectura del CLI como tools MCP por stdio.",
 		Long: "Levanta un servidor Model Context Protocol sobre stdin/stdout que expone\n" +
-			"detect, version, manifest, credits y updates como tools tipados.\n" +
+			"detect, doctor, status, alerts, version, manifest, credits y updates como tools tipados.\n" +
 			"Solo lectura por diseño: ninguna operación mutante se expone vía MCP.\n\n" +
 			"Registro en Claude Code:\n" +
 			"  claude mcp add multiversa -- multiversa mcp serve",
@@ -80,6 +82,38 @@ func runMCPServer(ctx context.Context) error {
 	}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, detectJSON, error) {
 		report := detect.Run()
 		return nil, detectJSON{Report: report, Summary: report.Summarize()}, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "doctor",
+		Description: "Diagnóstico local de solo lectura con evidencia: deriva de binarios/cron, " +
+			"runtimes bloqueados, permisos e índices ausentes. Nunca aplica correcciones.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, doctorJSON, error) {
+		report := doctor.Run(detect.Run())
+		return nil, doctorJSON{Report: report}, nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name: "status",
+		Description: "Vista diaria de solo lectura: tenant activo, salud, stack, alertas persistidas y " +
+			"próxima acción aprobable. No refresca ni modifica el ledger desde MCP.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, statusJSON, error) {
+		return nil, buildStatus(false, time.Now()), nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
+		Name:        "alerts",
+		Description: "Lee el ledger local de alertas de Multiversa sin refrescarlo ni modificarlo.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, _ any) (*mcp.CallToolResult, alertsJSON, error) {
+		path, err := alertledger.DefaultPath()
+		if err != nil {
+			return nil, alertsJSON{}, err
+		}
+		ledger, err := alertledger.Load(path)
+		if err != nil {
+			return nil, alertsJSON{}, err
+		}
+		return nil, alertsJSON{Path: path, Summary: ledger.Summary(), Alerts: ledger.OpenAlerts()}, nil
 	})
 
 	mcp.AddTool(server, &mcp.Tool{

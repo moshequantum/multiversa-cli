@@ -32,7 +32,7 @@ func newTenantCmd() *cobra.Command {
 			"su vault (0700 — Multiversa nunca lee su contenido), su grafo de\n" +
 			"conocimiento anclado a la identidad, y su memoria Engram.",
 	}
-	cmd.AddCommand(newTenantNewCmd(), newTenantBootstrapCmd(), newTenantConnectProviderCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd(), newTenantSetSecretCmd())
+	cmd.AddCommand(newTenantNewCmd(), newTenantBootstrapCmd(), newTenantConnectProviderCmd(), newTenantListCmd(), newTenantShowCmd(), newTenantUseCmd(), newTenantSetSecretCmd(), newTenantExecCmd(), newTenantSecretsCmd())
 	return cmd
 }
 
@@ -192,6 +192,57 @@ func newTenantSetSecretCmd() *cobra.Command {
 			}
 			fmt.Println(theme.Accent.Render("✓ secreto guardado · " + key))
 			fmt.Println(theme.Dim.Render(fmt.Sprintf("  %d en el vault de %s", count, slug)))
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit a JSON envelope (schema multiversa.tenant/v1).")
+	return cmd
+}
+
+// newTenantSecretsCmd lists what a profile is connected to, by name. It exists
+// so "¿este perfil ya tiene su clave de InsForge?" is answerable without opening
+// the vault file — and it prints names only, never values, like `tenant show`.
+func newTenantSecretsCmd() *cobra.Command {
+	var jsonOut bool
+	cmd := &cobra.Command{
+		Use:   "secrets <slug|.>",
+		Short: "Lista los NOMBRES de los secretos del vault (nunca los valores).",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			slug := args[0]
+			if slug == "." || slug == "-" {
+				slug = tenant.Active()
+				if slug == "" {
+					return fmt.Errorf("no hay tenant activo — elige uno con `multiversa tenant use <slug>` o pasa el slug")
+				}
+			}
+			names, err := tenant.SecretNames(slug)
+			if err != nil {
+				if jsonOut {
+					_ = agentout.EmitError(os.Stdout, "tenant", "secrets_failed", err.Error(), "")
+					os.Exit(1)
+				}
+				return err
+			}
+			if jsonOut {
+				if names == nil {
+					names = []string{}
+				}
+				return agentout.Emit(os.Stdout, "tenant", struct {
+					Action string   `json:"action"`
+					Slug   string   `json:"slug"`
+					Keys   []string `json:"keys"`
+					Count  int      `json:"count"`
+				}{"secrets_list", slug, names, len(names)})
+			}
+			if len(names) == 0 {
+				fmt.Println(theme.Dim.Render("vault vacío · " + slug))
+				return nil
+			}
+			fmt.Println(theme.Accent.Render("vault · " + slug))
+			for _, n := range names {
+				fmt.Println("  " + n)
+			}
 			return nil
 		},
 	}

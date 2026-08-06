@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/moshequantum/multiversa-cli/internal/agentout"
+	"github.com/moshequantum/multiversa-cli/internal/capability"
 	"github.com/moshequantum/multiversa-cli/internal/detect"
 	"github.com/moshequantum/multiversa-cli/internal/profile"
 	"github.com/moshequantum/multiversa-cli/internal/theme"
@@ -164,7 +165,8 @@ func (m DetectModel) View() string {
 	// Summary line — one tight row of totals.
 	ti, tt := m.report.ReadyTools()
 	ei, et := m.report.ReadyEngines()
-	summary := fmt.Sprintf("listos: %d/%d herramientas · %d/%d motores", ti, tt, ei, et)
+	ai, at := m.report.ReadyAgents()
+	summary := fmt.Sprintf("listos: %d/%d herramientas · %d/%d motores · %d/%d agentes", ti, tt, ei, et, ai, at)
 	b.WriteString(theme.Dim.Render(summary))
 	b.WriteString("\n\n")
 
@@ -230,6 +232,8 @@ func (m DetectModel) renderTools() string {
 	for _, t := range m.report.Tools {
 		var status string
 		switch {
+		case t.State == capability.Blocked:
+			status = theme.Warn.Render("⚠ bloqueado · " + t.ProbeError)
 		case t.Warn && t.Installed:
 			status = theme.Warn.Render("⚠ " + t.Version)
 		case t.Installed:
@@ -275,6 +279,8 @@ func (m DetectModel) renderMultiversa() string {
 	for _, e := range r.Multiversa.Engines {
 		var status string
 		switch {
+		case e.State == capability.Blocked:
+			status = theme.Warn.Render("⚠ bloqueado · " + strings.Join(e.Missing, ", "))
 		case e.Installed && e.Version != "":
 			status = theme.Accent.Render("✓ ") + theme.Body.Render(e.Version)
 		case e.Installed:
@@ -285,6 +291,20 @@ func (m DetectModel) renderMultiversa() string {
 			status = theme.Dim.Render("· no instalado")
 		}
 		b.WriteString(detailKV(e.ID, status))
+	}
+	for _, a := range r.Agents {
+		status := theme.Dim.Render("· opt-in, no instalado")
+		switch a.State {
+		case capability.Blocked:
+			status = theme.Warn.Render("⚠ bloqueado · " + strings.Join(a.Missing, ", "))
+		case capability.Connected:
+			status = theme.Accent.Render("✓ conectado")
+		case capability.Configured:
+			status = theme.Accent.Render("✓ configurado")
+		case capability.Installed:
+			status = theme.Accent.Render("✓ instalado")
+		}
+		b.WriteString(detailKV("agent:"+a.ID, status))
 	}
 	return b.String()
 }
@@ -329,22 +349,6 @@ func newDetectCmd() *cobra.Command {
 		Aliases: []string{"scan"},
 		Short:   "Escanea el host: SO, gestor de paquetes, dev stack, estado Multiversa.",
 		Long:    detectLong,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runDetect(os.Stdout, jsonOut)
-		},
-	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "Emit the report as a machine-readable JSON envelope (schema multiversa.detect/v1).")
-	return cmd
-}
-
-// newDoctorCmd keeps the npm/brew-style `doctor` alias alive. It
-// delegates to runDetect so the report shape stays single-source.
-func newDoctorCmd() *cobra.Command {
-	var jsonOut bool
-	cmd := &cobra.Command{
-		Use:    "doctor",
-		Short:  "Alias de `multiversa detect`.",
-		Hidden: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runDetect(os.Stdout, jsonOut)
 		},

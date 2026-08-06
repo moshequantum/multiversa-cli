@@ -1,0 +1,18 @@
+{
+  "name": "multiversa-browser-bridge",
+  "version": "0.2.0",
+  "description": "Time-boxed local control bridge between an authenticated Chromium tab and Multiversa.",
+  "author": {
+    "name": "Multiversa Lab"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Multiversa Browser Bridge",
+    "shortDescription": "Control one authorized browser tab from the local CLI.",
+    "longDescription": "A local-first browser bridge. One click authorizes a Gmail, Hotmart or ManyChat tab for 30 minutes; the CLI can then inspect, reload, click, download and fill semantic controls without reading or exporting cookies.",
+    "developerName": "Multiversa Lab",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Use the Multiversa Browser Bridge to operate only a time-boxed, user-authorized Gmail, Hotmart or ManyChat tab. Never ask for, read, or export browser cookies, passwords, OTPs or session tokens."
+  }
+}

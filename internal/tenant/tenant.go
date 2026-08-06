@@ -122,6 +122,7 @@ func Dir(slug string) (string, error) {
 //	  vault/            0700 — secrets live here, never serialized
 //	  graph/            knowledge graph home (anchored to identity)
 //	  memory/           Engram home for this tenant
+//
 // Pillars given here replace the template's defaults; passing none keeps them.
 // It is variadic so every existing three-argument call still compiles — and so
 // that the Tauri installer can delegate tenant creation here instead of writing

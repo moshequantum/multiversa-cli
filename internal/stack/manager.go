@@ -6,6 +6,7 @@ package stack
 import (
 	"errors"
 	"fmt"
+	osexec "os/exec"
 	"strings"
 
 	xexec "github.com/moshequantum/multiversa-cli/internal/exec"
@@ -104,9 +105,19 @@ func goModuleVersion(version string) string {
 
 // Status is the local installation state of an engine.
 type Status struct {
+	// Installed preserves the original v0.x contract: some local artifact for
+	// the integration is present. Blocked distinguishes that from usable.
 	Installed bool
 	Version   string
 	Path      string
+	Blocked   bool
+	Missing   []string
+	Evidence  []string
+}
+
+func binaryPath(name string) string {
+	p, _ := osexec.LookPath(name)
+	return p
 }
 
 // Engine is the contract every curated engine must satisfy.

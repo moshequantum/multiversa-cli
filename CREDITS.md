@@ -6,6 +6,16 @@ If Multiversa is useful to you, **star these repos first**.
 
 ---
 
+## Optional agent runtimes
+
+### Hermes Agent (opt-in)
+- **Author:** Nous Research
+- **Repo:** https://github.com/NousResearch/hermes-agent
+- **License:** MIT
+- **Role in Multiversa:** Optional agent runtime connected through MCP; Multiversa detects and integrates it but does not embed or require it.
+
+---
+
 ## Engines
 
 ### Engram

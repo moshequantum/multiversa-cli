@@ -105,6 +105,15 @@ func watchedComponents() []upstream.Component {
 			installedByID[e.ID] = v
 		}
 	}
+	for _, a := range report.Agents {
+		if a.Installed {
+			v := a.Version
+			if v == "" {
+				v = "instalado"
+			}
+			installedByID[a.ID] = v
+		}
+	}
 
 	comps := []upstream.Component{{
 		ID:        "multiversa-cli",

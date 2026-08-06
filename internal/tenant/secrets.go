@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -87,6 +88,65 @@ func SetSecret(slug, key, value string) (int, error) {
 		return 0, err
 	}
 	return len(order), nil
+}
+
+// SecretNames returns the names — never the values — of the secrets stored in a
+// tenant's vault, in the order they were added. This is what any surface that
+// needs to *show* the vault uses: the installer's review step, `tenant show`,
+// an agent asking "is this profile connected?". A missing vault is not an
+// error; it is an empty list.
+func SecretNames(slug string) ([]string, error) {
+	path, err := SecretsPath(slug)
+	if err != nil {
+		return nil, err
+	}
+	_, order, err := readSecrets(path)
+	if err != nil {
+		return nil, err
+	}
+	return order, nil
+}
+
+// Environ renders a tenant's vault as KEY=value pairs ready to hand to a child
+// process, plus the list of names it injected (for a human-readable note; the
+// values are never returned to a caller that only wants to report).
+//
+// aliases maps a vault key to the name the child expects — e.g. the InsForge
+// MCP server reads API_KEY, while the vault stores INSFORGE_API_KEY so several
+// backends can coexist in one profile. An alias adds a name, it does not remove
+// the original.
+//
+// The returned slice contains secrets. Callers must pass it straight to
+// exec.Cmd.Env and never log, print, or serialize it.
+func Environ(slug string, aliases map[string]string) (env []string, names []string, err error) {
+	path, err := SecretsPath(slug)
+	if err != nil {
+		return nil, nil, err
+	}
+	entries, order, err := readSecrets(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	for src, dst := range aliases {
+		if _, ok := entries[src]; !ok {
+			return nil, nil, fmt.Errorf("el vault de %q no tiene %q — guárdalo con: printf %%s \"$VALOR\" | multiversa tenant set-secret %s %s", slug, src, slug, src)
+		}
+		if !envKeyRe.MatchString(dst) {
+			return nil, nil, fmt.Errorf("alias inválido %q — el destino debe ser un nombre de variable de entorno", dst)
+		}
+	}
+	for _, k := range order {
+		env = append(env, k+"="+entries[k])
+		names = append(names, k)
+	}
+	// Aliases are applied after the originals so a rename always wins over an
+	// identically-named vault entry.
+	for src, dst := range aliases {
+		env = append(env, dst+"="+entries[src])
+		names = append(names, dst)
+	}
+	sort.Strings(names)
+	return env, names, nil
 }
 
 // readSecrets parses an existing secrets file into a map plus the key order, so

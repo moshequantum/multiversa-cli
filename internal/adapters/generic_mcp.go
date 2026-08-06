@@ -5,8 +5,8 @@ package adapters
 // manually.
 type GenericMCP struct{}
 
-func (GenericMCP) ID() string                          { return "generic-mcp" }
-func (GenericMCP) DisplayName() string                 { return "Generic MCP" }
-func (GenericMCP) Detect() bool                        { return true } // always available as fallback
-func (GenericMCP) Connect(opts ConnectOptions) error   { return ErrNotImplemented }
-func (GenericMCP) Disconnect() error                   { return ErrNotImplemented }
+func (GenericMCP) ID() string                        { return "generic-mcp" }
+func (GenericMCP) DisplayName() string               { return "Generic MCP" }
+func (GenericMCP) Detect() bool                      { return true } // always available as fallback
+func (GenericMCP) Connect(opts ConnectOptions) error { return ErrNotImplemented }
+func (GenericMCP) Disconnect() error                 { return ErrNotImplemented }

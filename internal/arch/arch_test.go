@@ -40,8 +40,9 @@ var ringName = map[int]string{
 // the module root. Anything missing is a test failure, not a default.
 var ring = map[string]int{
 	// shared — pure data, no dependencies, safe from anywhere
-	"internal/theme":   ringShared,
-	"internal/version": ringShared,
+	"internal/theme":      ringShared,
+	"internal/version":    ringShared,
+	"internal/capability": ringShared,
 
 	// core — the domain and its ports. This is what must stay testable
 	// without a network, a disk, or a model.
@@ -67,6 +68,8 @@ var ring = map[string]int{
 	"internal/wizard":       ringDriving,
 	"internal/wizard/steps": ringDriving,
 	"internal/agentout":     ringDriving,
+	"internal/doctor":       ringDriving,
+	"internal/alerts":       ringDriving,
 
 	// assembly
 	"cmd/multiversa": ringAssembly,

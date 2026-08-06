@@ -27,21 +27,22 @@ type Adapter interface {
 
 func Registry() map[string]Adapter {
 	return map[string]Adapter{
-		"claude-code":  &ClaudeCode{},
-		"cursor":       &Cursor{},
-		"codex":        &Codex{},
-		"gemini-cli":   &GeminiCLI{},
-		"opencode":     &OpenCode{},
-		"aider":        &Aider{},
-		"cline":        &Cline{},
-		"continue":     &Continue{},
-		"roo-code":     &RooCode{},
-		"generic-mcp":  &GenericMCP{},
+		"claude-code": &ClaudeCode{},
+		"cursor":      &Cursor{},
+		"codex":       &Codex{},
+		"gemini-cli":  &GeminiCLI{},
+		"opencode":    &OpenCode{},
+		"aider":       &Aider{},
+		"cline":       &Cline{},
+		"continue":    &Continue{},
+		"roo-code":    &RooCode{},
+		"hermes":      &Hermes{},
+		"generic-mcp": &GenericMCP{},
 	}
 }
 
 func List() []Adapter {
-	order := []string{"claude-code", "cursor", "codex", "gemini-cli", "opencode", "aider", "cline", "continue", "roo-code", "generic-mcp"}
+	order := []string{"claude-code", "cursor", "codex", "gemini-cli", "opencode", "aider", "cline", "continue", "roo-code", "hermes", "generic-mcp"}
 	reg := Registry()
 	out := make([]Adapter, 0, len(order))
 	for _, id := range order {

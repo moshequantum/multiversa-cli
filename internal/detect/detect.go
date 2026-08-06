@@ -14,6 +14,7 @@ type Report struct {
 	OS         OSInfo          `json:"os"`
 	Tools      []Tool          `json:"tools"`
 	Multiversa MultiversaState `json:"multiversa"`
+	Agents     []AgentState    `json:"agents"`
 }
 
 // Summary is the aggregate readiness view included in JSON output so
@@ -23,13 +24,16 @@ type Summary struct {
 	ToolsTotal   int `json:"tools_total"`
 	EnginesReady int `json:"engines_ready"`
 	EnginesTotal int `json:"engines_total"`
+	AgentsReady  int `json:"agents_ready"`
+	AgentsTotal  int `json:"agents_total"`
 }
 
 // Summarize computes the Summary for this report.
 func (r Report) Summarize() Summary {
 	ti, tt := r.ReadyTools()
 	ei, et := r.ReadyEngines()
-	return Summary{ToolsReady: ti, ToolsTotal: tt, EnginesReady: ei, EnginesTotal: et}
+	ai, at := r.ReadyAgents()
+	return Summary{ToolsReady: ti, ToolsTotal: tt, EnginesReady: ei, EnginesTotal: et, AgentsReady: ai, AgentsTotal: at}
 }
 
 // Run executes a full local scan and returns the populated Report.
@@ -38,7 +42,8 @@ func Run() Report {
 	return Report{
 		OS:         detectOS(),
 		Tools:      detectTools(),
-		Multiversa: detectMultiversa(stack.Registry()),
+		Multiversa: detectMultiversa(stack.List()),
+		Agents:     detectAgents(),
 	}
 }
 
@@ -47,7 +52,7 @@ func (r Report) ReadyTools() (installed, total int) {
 	for _, t := range r.Tools {
 		if !t.Advisory {
 			total++
-			if t.Installed {
+			if (t.State == "" && t.Installed) || t.State.Ready() {
 				installed++
 			}
 		}
@@ -59,8 +64,19 @@ func (r Report) ReadyTools() (installed, total int) {
 func (r Report) ReadyEngines() (installed, total int) {
 	for _, e := range r.Multiversa.Engines {
 		total++
-		if e.Installed {
+		if (e.State == "" && e.Installed) || e.State.Ready() {
 			installed++
+		}
+	}
+	return
+}
+
+// ReadyAgents returns how many optional agent runtimes are usable locally.
+func (r Report) ReadyAgents() (ready, total int) {
+	for _, a := range r.Agents {
+		total++
+		if a.State.Ready() {
+			ready++
 		}
 	}
 	return

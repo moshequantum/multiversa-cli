@@ -15,49 +15,103 @@ func (GentlePi) Repo() string        { return "https://github.com/Gentleman-Prog
 func (GentlePi) License() string     { return "MIT" }
 func (GentlePi) OptIn() bool         { return false }
 
-// Strategies: pnpm only. npm is banned across the Multiversa stack — see
-// docs and the project-rules-pnpm-only memory note.
+// gentle-pi is a Pi package, not a standalone global package. Upstream's
+// supported route is `pi install npm:gentle-pi`; the npm: prefix identifies
+// the registry package and does not invoke the banned npm CLI.
 func (g GentlePi) Strategies(version string) []Strategy {
-	pkg := "gentle-pi"
+	pkg := "npm:gentle-pi"
 	if version != "" && version != "latest" {
-		pkg = "gentle-pi@" + version
+		pkg = "npm:gentle-pi@" + version
 	}
 	return []Strategy{{
-		Prereq: "pnpm",
-		Cmd:    []string{"pnpm", "add", "-g", pkg},
-		Note:   "paquete global con pnpm (npm prohibido por política)",
+		Prereq: "pi",
+		Cmd:    []string{"pi", "install", pkg},
+		Note:   "paquete del runtime Pi (requiere Pi instalado)",
 	}}
 }
 
 func (g GentlePi) Install(version string) error { return runInstall(g, version) }
 
-// Status cannot probe the PATH: the gentle-pi npm package declares no `bin`
-// at all — it is a development harness (SDD/OpenSpec, subagents, TDD
-// evidence), not a CLI. Looking for a `gentle-pi` executable therefore always
-// failed, reporting a correctly installed engine as missing. Ask the package
-// manager that owns it instead.
+// Status separates the package artifact from the runtime that can execute it.
+// Older Multiversa builds installed gentle-pi globally with pnpm; that leaves
+// a detectable package but no usable integration when `pi` is absent.
 func (g GentlePi) Status() (Status, error) {
-	if !xexec.Check("pnpm") {
+	legacyPresent, legacyVersion := legacyGentlePiPackage()
+	if !xexec.Check("pi") {
+		if legacyPresent {
+			return Status{
+				Installed: true,
+				Version:   legacyVersion,
+				Blocked:   true,
+				Missing:   []string{"runtime:pi"},
+				Evidence:  []string{"legacy-global-package:gentle-pi"},
+			}, nil
+		}
 		return Status{Installed: false}, nil
+	}
+
+	// Pi owns its package inventory. If its list surface changes, preserve the
+	// runtime evidence but do not claim gentle-pi is installed.
+	r := xexec.Run("pi", "list")
+	for _, line := range r.Output {
+		if strings.Contains(line, "gentle-pi") {
+			return Status{
+				Installed: true,
+				Version:   piPackageVersion(line),
+				Path:      binaryPath("pi"),
+				Evidence:  []string{"runtime:pi", "pi-package:gentle-pi"},
+			}, nil
+		}
+	}
+	if legacyPresent {
+		return Status{
+			Installed: true,
+			Version:   legacyVersion,
+			Path:      binaryPath("pi"),
+			Blocked:   true,
+			Missing:   []string{"pi-package:gentle-pi"},
+			Evidence:  []string{"legacy-global-package:gentle-pi", "runtime:pi"},
+		}, nil
+	}
+	return Status{Installed: false, Path: binaryPath("pi"), Evidence: []string{"runtime:pi"}}, nil
+}
+
+// piPackageVersion extracts a pinned version from Pi's package inventory.
+// An unpinned source is still a valid installed package, but has no reliable
+// version in `pi list`, so it intentionally returns an empty string.
+func piPackageVersion(line string) string {
+	const marker = "npm:gentle-pi@"
+	idx := strings.Index(line, marker)
+	if idx < 0 {
+		return ""
+	}
+	version := strings.Fields(line[idx+len(marker):])
+	if len(version) == 0 {
+		return ""
+	}
+	return version[0]
+}
+
+func legacyGentlePiPackage() (bool, string) {
+	if !xexec.Check("pnpm") {
+		return false, ""
 	}
 	r := xexec.Run("pnpm", "list", "-g", "--depth", "0")
 	if r.Err != nil {
-		return Status{Installed: false}, nil
+		return false, ""
 	}
 	for _, line := range r.Output {
-		// pnpm renders entries as `gentle-pi@1.1.0`, possibly inside a
-		// tree-drawing prefix such as "└── ".
 		idx := strings.Index(line, "gentle-pi@")
 		if idx < 0 {
 			continue
 		}
 		version := strings.Fields(line[idx+len("gentle-pi@"):])
 		if len(version) == 0 {
-			return Status{Installed: true}, nil
+			return true, ""
 		}
-		return Status{Installed: true, Version: version[0]}, nil
+		return true, version[0]
 	}
-	return Status{Installed: false}, nil
+	return false, ""
 }
 
 func (g GentlePi) Uninstall() error { return ErrNotImplemented }

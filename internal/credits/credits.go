@@ -24,6 +24,15 @@ type Source struct {
 
 var Sources = []Source{
 	{
+		ID:      "hermes",
+		Name:    "Hermes Agent",
+		Author:  "Nous Research",
+		Repo:    "https://github.com/NousResearch/hermes-agent",
+		License: "MIT",
+		Role:    "optional agent runtime with MCP, profiles and projects",
+		OptIn:   true,
+	},
+	{
 		ID:      "engram",
 		Name:    "Engram",
 		Author:  "Gentleman-Programming",

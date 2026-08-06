@@ -118,4 +118,3 @@ func (c ClaudeCode) Disconnect() error {
 
 	return nil
 }
-

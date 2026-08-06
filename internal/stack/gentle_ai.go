@@ -51,9 +51,9 @@ func (g GentleAI) Status() (Status, error) {
 		}
 		r := xexec.Run(bin, "--version")
 		if r.Err != nil {
-			return Status{Installed: true, Path: bin}, nil
+			return Status{Installed: true, Path: binaryPath(bin), Blocked: true, Missing: []string{"working-version-probe"}}, nil
 		}
-		return Status{Installed: true, Version: r.LastLine(), Path: bin}, nil
+		return Status{Installed: true, Version: r.LastLine(), Path: binaryPath(bin)}, nil
 	}
 	return Status{Installed: false}, nil
 }
