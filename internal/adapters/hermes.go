@@ -43,26 +43,57 @@ func (Hermes) Connect(opts ConnectOptions) error {
 		}
 		exe = filepath.Join(home, ".local", "bin", "multiversa")
 	}
-	if err := runHermes("mcp", "add", "multiversa", "--command", exe, "--args", "mcp", "serve"); err != nil {
+	// `hermes mcp add` pregunta "Enable all N tools?" antes de escribir. Sin
+	// terminal el prompt lee EOF, hermes imprime "Cancelled." y SALE CON 0,
+	// así que responder por stdin es necesario pero no suficiente.
+	if _, err := runHermes("y\n", "mcp", "add", "multiversa", "--command", exe, "--args", "mcp", "serve"); err != nil {
 		return fmt.Errorf("hermes mcp add: %w", err)
 	}
+
+	// Un exit 0 no prueba registro. Se verifica contra el inventario del
+	// propio Hermes antes de declarar éxito: reportar una conexión que no
+	// existe es peor que fallar.
+	registered, err := hermesHasServer("multiversa")
+	if err != nil {
+		return err
+	}
+	if !registered {
+		return fmt.Errorf(
+			"hermes aceptó el comando pero no registró 'multiversa'; ejecútalo en una terminal interactiva:\n"+
+				"  hermes mcp add multiversa --command %s --args mcp serve", exe)
+	}
 	return nil
+}
+
+// hermesHasServer consulta el inventario de MCP de Hermes. Es la única fuente
+// de verdad: el código de salida de `mcp add` no distingue registro de
+// cancelación.
+func hermesHasServer(name string) (bool, error) {
+	out, err := runHermes("", "mcp", "list")
+	if err != nil {
+		return false, fmt.Errorf("hermes mcp list: %w", err)
+	}
+	return strings.Contains(out, name), nil
 }
 
 func (Hermes) Disconnect() error {
 	if _, err := osexec.LookPath("hermes"); err != nil {
 		return nil
 	}
-	if err := runHermes("mcp", "remove", "multiversa"); err != nil {
+	if _, err := runHermes("y\n", "mcp", "remove", "multiversa"); err != nil {
 		return fmt.Errorf("hermes mcp remove: %w", err)
 	}
 	return nil
 }
 
-func runHermes(args ...string) error {
+// runHermes ejecuta hermes con stdin fijado y devuelve su salida combinada.
+// El stdin importa: varios subcomandos piden confirmación y, sin ella, se
+// cancelan silenciosamente devolviendo 0.
+func runHermes(stdin string, args ...string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	cmd := osexec.CommandContext(ctx, "hermes", args...)
+	cmd.Stdin = strings.NewReader(stdin)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -72,7 +103,7 @@ func runHermes(args ...string) error {
 		if len(lines) > 0 {
 			last = lines[len(lines)-1]
 		}
-		return fmt.Errorf("%w: %s", err, last)
+		return out.String(), fmt.Errorf("%w: %s", err, last)
 	}
-	return nil
+	return out.String(), nil
 }
