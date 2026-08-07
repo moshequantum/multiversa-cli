@@ -229,7 +229,50 @@ func cronEntry() string {
 	if err != nil || bin == "" {
 		bin = "multiversa"
 	}
-	return fmt.Sprintf("0 9 * * * %s updates --json >> %s 2>&1 %s", bin, updatesLogPath(), cronMarker)
+	return fmt.Sprintf("0 9 * * * PATH=%s %s updates --json >> %s 2>&1 %s",
+		cronPATH(bin), bin, updatesLogPath(), cronMarker)
+}
+
+// cronPATH builds the explicit PATH the daily watcher runs with. cron starts
+// from a minimal PATH (typically /usr/bin:/bin), so engines installed under
+// the user's home — the normal case for engram, graphify and the Go toolchain
+// — are invisible during the check and the report claims they are missing.
+//
+// Only directories that exist are listed: the line has to stay honest about
+// what this machine actually has, and a stale entry pointing at a removed
+// toolchain is worse than a short PATH.
+func cronPATH(bin string) string {
+	seen := map[string]bool{}
+	dirs := make([]string, 0, 8)
+	add := func(dir string) {
+		if dir == "" || dir == "." || seen[dir] {
+			return
+		}
+		if fi, err := os.Stat(dir); err != nil || !fi.IsDir() {
+			return
+		}
+		seen[dir] = true
+		dirs = append(dirs, dir)
+	}
+
+	// The binary's own directory first: whatever invoked the install is the
+	// build the operator meant to schedule.
+	add(filepath.Dir(bin))
+	if home, err := os.UserHomeDir(); err == nil {
+		for _, rel := range [][]string{
+			{".local", "bin"},
+			{"go", "bin"},
+			{".bun", "bin"},
+			{".local", "share", "pnpm"},
+			{".cargo", "bin"},
+		} {
+			add(filepath.Join(append([]string{home}, rel...)...))
+		}
+	}
+	for _, dir := range []string{"/usr/local/bin", "/usr/bin", "/bin"} {
+		add(dir)
+	}
+	return strings.Join(dirs, ":")
 }
 
 // currentCrontab returns the user's crontab lines. A missing crontab
