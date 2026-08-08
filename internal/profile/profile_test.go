@@ -32,6 +32,7 @@ func TestSaveAndLoad_RoundTrip(t *testing.T) {
 	in := Profile{
 		Level:            Enthusiast,
 		Locale:           "es-LA",
+		ProjectOSName:    "MiniUniversoOS",
 		InstalledEngines: []string{"engram", "graphify"},
 	}
 	if err := in.Save(); err != nil {
@@ -46,6 +47,9 @@ func TestSaveAndLoad_RoundTrip(t *testing.T) {
 	}
 	if out.Locale != in.Locale {
 		t.Errorf("Locale: got %q, want %q", out.Locale, in.Locale)
+	}
+	if out.ProjectOSName != in.ProjectOSName {
+		t.Errorf("ProjectOSName: got %q, want %q", out.ProjectOSName, in.ProjectOSName)
 	}
 	if len(out.InstalledEngines) != 2 {
 		t.Errorf("InstalledEngines: got %v, want 2 entries", out.InstalledEngines)

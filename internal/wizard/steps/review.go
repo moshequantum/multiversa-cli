@@ -9,10 +9,13 @@ import (
 )
 
 type Review struct {
-	Engines []string
-	Backend string
-	width   int
+	ProjectOSName string
+	Engines       []string
+	Backend       string
+	width         int
 }
+
+func (r *Review) SetProjectOSName(name string) { r.ProjectOSName = name }
 
 func NewReview() Step { return &Review{} }
 
@@ -53,6 +56,7 @@ func (r *Review) View() string {
 
 	body := lipgloss.JoinVertical(lipgloss.Left,
 		title, "",
+		theme.Label10("ProjectOS"), theme.Body.Render(r.ProjectOSName), "",
 		theme.Label10("Motores"), engines, "",
 		theme.Label10("Backend"), backend, "",
 		theme.Accent.Render("¿Instalar? [enter/y] sí  ·  [b/n] revisar"),

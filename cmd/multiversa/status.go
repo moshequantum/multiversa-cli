@@ -18,16 +18,17 @@ import (
 )
 
 type statusJSON struct {
-	State        capability.State       `json:"state"`
-	ActiveTenant *tenant.Info           `json:"active_tenant,omitempty"`
-	Detection    detect.Summary         `json:"detection"`
-	CLI          detect.MultiversaState `json:"cli"`
-	Agents       []detect.AgentState    `json:"agents"`
-	Doctor       doctor.Summary         `json:"doctor"`
-	Alerts       alertledger.Summary    `json:"alerts"`
-	LedgerPath   string                 `json:"ledger_path,omitempty"`
-	LedgerError  string                 `json:"ledger_error,omitempty"`
-	NextAction   *doctor.Finding        `json:"next_action,omitempty"`
+	State         capability.State       `json:"state"`
+	ProjectOSName string                 `json:"project_os_name,omitempty"`
+	ActiveTenant  *tenant.Info           `json:"active_tenant,omitempty"`
+	Detection     detect.Summary         `json:"detection"`
+	CLI           detect.MultiversaState `json:"cli"`
+	Agents        []detect.AgentState    `json:"agents"`
+	Doctor        doctor.Summary         `json:"doctor"`
+	Alerts        alertledger.Summary    `json:"alerts"`
+	LedgerPath    string                 `json:"ledger_path,omitempty"`
+	LedgerError   string                 `json:"ledger_error,omitempty"`
+	NextAction    *doctor.Finding        `json:"next_action,omitempty"`
 }
 
 func buildStatus(refreshLedger bool, now time.Time) statusJSON {
@@ -35,7 +36,8 @@ func buildStatus(refreshLedger bool, now time.Time) statusJSON {
 	diagnosis := doctor.Run(detection)
 	data := statusJSON{
 		State: detectionState(diagnosis), Detection: detection.Summarize(),
-		CLI: detection.Multiversa, Agents: detection.Agents, Doctor: diagnosis.Summary,
+		ProjectOSName: configuredProjectOSName(),
+		CLI:           detection.Multiversa, Agents: detection.Agents, Doctor: diagnosis.Summary,
 	}
 	if infos, err := tenant.List(); err == nil {
 		active := tenant.Active()
@@ -77,6 +79,9 @@ func detectionState(diagnosis doctor.Report) capability.State {
 func renderStatus(w io.Writer, data statusJSON) {
 	fmt.Fprintln(w, theme.Accent.Render("multiversa status")+theme.Dim.Render(" · vista diaria del operador"))
 	fmt.Fprintf(w, "  estado     %s\n", data.State)
+	if data.ProjectOSName != "" {
+		fmt.Fprintf(w, "  project os  %s\n", data.ProjectOSName)
+	}
 	if data.ActiveTenant == nil {
 		fmt.Fprintln(w, "  tenant     ninguno activo")
 	} else {

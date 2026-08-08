@@ -9,7 +9,8 @@
 set -eu
 
 REPO="moshequantum/multiversa-cli"
-INSTALL_DIR="${MULTIVERSA_INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="${MULTIVERSA_INSTALL_DIR:-}"
+INSTALL_TARGET="override"
 VERSION="${MULTIVERSA_VERSION:-latest}"
 ASSUME_YES="${MULTIVERSA_YES:-0}"
 
@@ -40,6 +41,69 @@ ask() {
   case "$answer" in y|Y|s|S|si|SI|yes) return 0 ;; *) return 1 ;; esac
 }
 
+choose_install_target() {
+  if [ "${MULTIVERSA_INSTALL_DIR+x}" = "x" ]; then
+    [ -n "$INSTALL_DIR" ] || {
+      echo "MULTIVERSA_INSTALL_DIR no puede estar vacío." >&2
+      exit 1
+    }
+    say "Destino: $INSTALL_DIR (MULTIVERSA_INSTALL_DIR)"
+    return
+  fi
+
+  INSTALL_TARGET="user"
+  if [ "$ASSUME_YES" != "1" ] && [ "$HAS_TTY" = "1" ]; then
+    say "¿Dónde quieres instalar multiversa?"
+    accent "  [1] Usuario · $HOME/.local/bin (recomendado)"
+    say "  [2] Sistema · /usr/local/bin (requiere sudo)"
+    while :; do
+      printf "%bElige [1/2, default 1]: %b" "$CHARTREUSE" "$RESET"
+      read -r target < /dev/tty || target=""
+      case "$target" in
+        ""|1|u|U|usuario|Usuario) INSTALL_TARGET="user"; break ;;
+        2|s|S|sistema|Sistema) INSTALL_TARGET="system"; break ;;
+        *) warn "Elige 1 para usuario o 2 para sistema." ;;
+      esac
+    done
+  else
+    dim "  Destino automático: usuario ($HOME/.local/bin)."
+  fi
+
+  if [ "$INSTALL_TARGET" = "system" ]; then
+    INSTALL_DIR="/usr/local/bin"
+    return
+  fi
+
+  INSTALL_DIR="$HOME/.local/bin"
+  mkdir -p "$INSTALL_DIR"
+  [ -w "$INSTALL_DIR" ] || {
+    echo "No puedo escribir en $INSTALL_DIR. Corrige sus permisos o elige otro destino." >&2
+    exit 1
+  }
+  case ":$PATH:" in
+    *":$INSTALL_DIR:"*) ;;
+    *)
+      warn "$INSTALL_DIR no está en PATH."
+      dim '  Añade esta línea a tu archivo de inicio del shell:'
+      dim '  export PATH="$HOME/.local/bin:$PATH"'
+      ;;
+  esac
+}
+
+confirm_no_duplicate() {
+  existing=$(command -v multiversa 2>/dev/null || true)
+  chosen="$INSTALL_DIR/multiversa"
+  if [ -z "$existing" ] || [ "$existing" = "$chosen" ]; then
+    return
+  fi
+
+  warn "ya hay un multiversa en $existing; instalar aquí creará un duplicado"
+  if ! ask "¿Quieres continuar e instalar también en $chosen?"; then
+    say "Instalación cancelada. El binario existente no se modificó."
+    exit 1
+  fi
+}
+
 detect_os() {
   case "$(uname -s)" in
     Darwin) echo darwin ;;
@@ -65,6 +129,9 @@ echo
 OS=$(detect_os)
 ARCH=$(detect_arch)
 say "Detectado: $OS/$ARCH"
+
+choose_install_target
+confirm_no_duplicate
 
 # ── 1. Resolver versión y descargar ─────────────────────────────
 if [ "$VERSION" = "latest" ]; then
@@ -98,13 +165,30 @@ curl -fsSL "$BASE/checksums.txt" -o "$TMP/checksums.txt"
 
 tar -xzf "$TMP/$ASSET" -C "$TMP"
 
-if [ ! -w "$INSTALL_DIR" ]; then
-  say "Instalando en $INSTALL_DIR (requiere sudo)…"
-  sudo install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
-else
-  say "Instalando en $INSTALL_DIR…"
-  install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
-fi
+case "$INSTALL_TARGET" in
+  user)
+    say "Instalando en $INSTALL_DIR…"
+    install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
+    ;;
+  system)
+    if [ "$(id -u)" = "0" ]; then
+      say "Instalando en $INSTALL_DIR como root…"
+      install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
+    else
+      say "Instalando en $INSTALL_DIR (requiere sudo)…"
+      sudo install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
+    fi
+    ;;
+  *)
+    if [ ! -w "$INSTALL_DIR" ]; then
+      say "Instalando en $INSTALL_DIR (requiere sudo)…"
+      sudo install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
+    else
+      say "Instalando en $INSTALL_DIR…"
+      install -m 0755 "$TMP/multiversa" "$INSTALL_DIR/multiversa"
+    fi
+    ;;
+esac
 accent "✓ multiversa $VERSION instalado en $INSTALL_DIR/multiversa"
 echo
 

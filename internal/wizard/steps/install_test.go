@@ -127,6 +127,7 @@ func TestInstallPersistsProfileAfterRealRun(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
 	step := NewInstall().(*Install)
+	step.SetProjectOSName("MiniUniversoOS")
 	step.Set([]string{"engram", "graphify"}, "local")
 	// Simulate the end state of a run where only engram succeeded.
 	step.statuses["engram"] = stDone
@@ -154,6 +155,9 @@ func TestInstallPersistsProfileAfterRealRun(t *testing.T) {
 	if !p.Level.IsValid() {
 		t.Errorf("profile persisted with an invalid level %q", p.Level)
 	}
+	if p.ProjectOSName != "MiniUniversoOS" {
+		t.Errorf("project OS name = %q, want MiniUniversoOS", p.ProjectOSName)
+	}
 }
 
 // A dry-run previews; it must not write a profile, and must not claim to.
@@ -162,6 +166,7 @@ func TestInstallDryRunPersistsNothing(t *testing.T) {
 
 	step := NewInstall().(*Install)
 	step.SetDryRun(true)
+	step.SetProjectOSName("PreviewOS")
 	step.Set([]string{"engram"}, "local")
 	step.statuses["engram"] = stSkipped
 	step.finished = true
@@ -177,6 +182,9 @@ func TestInstallDryRunPersistsNothing(t *testing.T) {
 	step.saved = true
 	if got := step.renderProfileLine(); !strings.Contains(got, "dry-run") {
 		t.Errorf("dry-run profile line should mark itself a preview, got %q", got)
+	}
+	if got := step.View(); !strings.Contains(got, "PreviewOS") {
+		t.Errorf("dry-run install view does not show the project OS name: %q", got)
 	}
 }
 
