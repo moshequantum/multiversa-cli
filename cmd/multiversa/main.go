@@ -146,6 +146,7 @@ func newManifestCmd() *cobra.Command {
 				}
 				m = manifest.Default()
 			}
+			applyProjectOSName(m)
 			if jsonOut {
 				return agentout.Emit(os.Stdout, "manifest", manifestJSON{Path: path, Exists: exists, Manifest: m})
 			}
@@ -155,6 +156,9 @@ func newManifestCmd() *cobra.Command {
 			}
 			fmt.Printf("  profile   %s\n  ethic     %s\n  version   %s\n  backend   %s\n",
 				m.Multiversa.Profile, m.Multiversa.Ethic, m.Multiversa.Version, m.Backend.Provider)
+			if m.Tenant.OSName != "" {
+				fmt.Printf("  project os %s\n", m.Tenant.OSName)
+			}
 			if len(m.Agents.Enabled) > 0 {
 				fmt.Printf("  agents    %s\n", strings.Join(m.Agents.Enabled, " · "))
 			}

@@ -5,9 +5,9 @@
 // agents on the user's machine surface the same context.
 //
 // The profile is intentionally minimal: who the user is (level),
-// what language to speak (locale), when we last saw them, and what
-// engines they already have. Everything else stays in the engines'
-// own state.
+// what language to speak (locale), the chosen ProjectOS name, when we
+// last saw them, and what engines they already have. Everything else
+// stays in the engines' own state.
 package profile
 
 import (
@@ -43,6 +43,7 @@ func (l Level) IsValid() bool {
 type Profile struct {
 	Level            Level     `toml:"level"`
 	Locale           string    `toml:"locale"`
+	ProjectOSName    string    `toml:"project_os_name,omitempty"`
 	LastRun          time.Time `toml:"last_run"`
 	InstalledEngines []string  `toml:"installed_engines"`
 }

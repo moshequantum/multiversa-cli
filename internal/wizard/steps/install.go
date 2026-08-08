@@ -31,6 +31,7 @@ const (
 type Install struct {
 	Engines          []string
 	Backend          string
+	ProjectOSName    string
 	DryRun           bool
 	AgplAcknowledged bool
 	width            int
@@ -78,6 +79,8 @@ func (i *Install) Set(engines []string, backend string) {
 }
 
 func (i *Install) SetDryRun(d bool) { i.DryRun = d }
+
+func (i *Install) SetProjectOSName(name string) { i.ProjectOSName = name }
 
 func (i *Install) SetAgplAcknowledged(ack bool) { i.AgplAcknowledged = ack }
 
@@ -237,6 +240,9 @@ func (i *Install) persistProfile() tea.Cmd {
 			// tier rather than leaving the field blank on disk.
 			p.Level = profile.Enthusiast
 		}
+		if i.ProjectOSName != "" {
+			p.ProjectOSName = i.ProjectOSName
+		}
 		for _, id := range installed {
 			p.MarkInstalled(id)
 		}
@@ -285,7 +291,7 @@ func (i *Install) View() string {
 		hint = theme.Dim.Render("[enter] terminar")
 	}
 
-	parts := []string{title, mode, "", theme.Label10("Motores")}
+	parts := []string{title, mode, "", theme.Label10("ProjectOS"), theme.Body.Render(i.ProjectOSName), "", theme.Label10("Motores")}
 	parts = append(parts, rows...)
 	parts = append(parts, "", backendLine)
 	if summary != "" {

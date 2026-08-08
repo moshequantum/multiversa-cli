@@ -19,6 +19,7 @@ func New() Model {
 		steps: []steps.Step{
 			steps.NewWelcome(),
 			steps.NewConsent(),
+			steps.NewNaming(),
 			steps.NewStack(),
 			steps.NewBackend(),
 			steps.NewReview(),
@@ -37,18 +38,26 @@ func Run() error {
 }
 
 func RunWith(opts Options) error {
-	m := New()
-	for _, s := range m.steps {
-		if inst, ok := s.(*steps.Install); ok {
-			inst.SetDryRun(opts.DryRun)
-			// The wizard always shows the consent screen before stack selection.
-			// If the user declines, the program exits before Install can run.
-			inst.SetAgplAcknowledged(true)
-		}
-	}
+	m := newWithOptions(opts)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	_, err := p.Run()
 	return err
+}
+
+func newWithOptions(opts Options) Model {
+	m := New()
+	for _, s := range m.steps {
+		switch step := s.(type) {
+		case *steps.Naming:
+			step.SetDryRun(opts.DryRun)
+		case *steps.Install:
+			step.SetDryRun(opts.DryRun)
+			// The wizard always shows the consent screen before stack selection.
+			// If the user declines, the program exits before Install can run.
+			step.SetAgplAcknowledged(true)
+		}
+	}
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -103,8 +112,11 @@ func (m Model) View() string {
 func (m *Model) propagate() {
 	var engines []string
 	var backend string
+	var projectOSName string
 	for _, s := range m.steps {
 		switch v := s.(type) {
+		case *steps.Naming:
+			projectOSName = v.Name()
 		case *steps.Stack:
 			engines = v.Selected()
 		case *steps.Backend:
@@ -115,8 +127,10 @@ func (m *Model) propagate() {
 		switch v := s.(type) {
 		case *steps.Review:
 			v.Set(engines, backend)
+			v.SetProjectOSName(projectOSName)
 		case *steps.Install:
 			v.Set(engines, backend)
+			v.SetProjectOSName(projectOSName)
 		}
 	}
 }
